@@ -745,7 +745,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     return changed;
   }
   let extOn = false;
-  const target = location.origin === 'null' ? '*' : location.origin;
+  const target = (location.protocol === 'file:' || location.origin === 'null') ? '*' : location.origin;
   function pushToExtension(extra) { if (extOn) window.postMessage({ rm: 'page-apps', apps: Object.values(tracker).concat(extra || []) }, target); }
   window.addEventListener('message', ev => {
     if (ev.source !== window || !ev.data || ev.data.rm !== 'ext-apps') return;

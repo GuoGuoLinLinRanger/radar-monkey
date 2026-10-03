@@ -2,7 +2,7 @@
 // Only does anything on pages that carry <meta name="radar-monkey">.
 (function () {
   if (!document.querySelector('meta[name="radar-monkey"]')) return;
-  const target = location.origin === 'null' ? '*' : location.origin;
+  const target = (location.protocol === 'file:' || location.origin === 'null') ? '*' : location.origin;
 
   async function send() {
     const { apps = {} } = await chrome.storage.local.get('apps');
