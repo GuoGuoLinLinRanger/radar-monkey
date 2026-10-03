@@ -1,0 +1,27 @@
+name: Package skill and extension
+
+on:
+  push:
+    branches: [main]
+    paths: ["packages/**", "extension/**", "scripts/package.py"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python scripts/package.py
+      - name: Publish to the "latest" release
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest dist/* --title "Latest build" \
+            --notes "Built from ${GITHUB_SHA::7}. Download tight-job-tailor.skill to add the skill to Claude; unzip the extension and load it unpacked in Chrome."
+        env:
+          GH_TOKEN: ${{ github.token }}

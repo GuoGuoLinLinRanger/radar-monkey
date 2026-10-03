@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Radar Monkey settings</title><link rel="stylesheet" href="ui.css">
+<style>
+body { padding: 24px 16px 60px; }
+main { max-width: 760px; margin: 0 auto; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 28px 0 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 16px; }
+label { display: block; font-size: 13px; font-weight: 600; }
+label .hint { font-weight: 400; display: block; }
+input[type=text], textarea { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); margin-top: 3px; }
+.qa { display: grid; grid-template-columns: 1fr 1.6fr auto; gap: 8px; margin-bottom: 8px; align-items: start; }
+.qa textarea { min-height: 38px; }
+.bar { position: sticky; bottom: 0; background: var(--bg); padding: 12px 0; border-top: 1px solid var(--line); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 24px; }
+#saved { color: var(--good); font-weight: 600; }
+.learned { max-height: 260px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.learned div { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 8px; padding: 6px 8px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.learned span:last-of-type { color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style></head>
+<body><main>
+  <h1>Your application profile</h1>
+  <p class="hint">Saved only in this browser. The extension fills forms when you click Fill, and never submits anything.</p>
+  <div id="profile"></div>
+
+  <h2>Resume</h2>
+  <p class="hint">Attached to "Resume/CV" upload fields. Swap it any time, e.g. after tailoring.</p>
+  <input type="file" id="resume" accept=".pdf,.doc,.docx"> <span id="resume-name" class="hint"></span>
+
+  <h2>Your answers to common questions</h2>
+  <p class="hint">If a question contains the words on the left, the answer on the right is used. Wrap in slashes for a pattern, e.g. <code>/why.*(us|company)/</code>. These win over the profile above.</p>
+  <div id="answers"></div>
+  <button class="btn" id="add-answer">Add an answer</button>
+
+  <h2>Answers remembered from forms</h2>
+  <p class="hint">Saved with "Remember my answers on this page". Delete any that are company-specific.</p>
+  <div class="learned" id="learned"></div>
+
+  <h2>Options</h2>
+  <label style="font-weight:400"><input type="checkbox" id="overwrite"> Replace answers that are already filled in (off = only fill empty fields)</label>
+  <label style="margin-top:10px">Dashboard link <span class="hint">Your GitHub Pages URL, so the popup can open it. Filled in for you once you visit it.</span>
+    <input type="text" id="dashboardUrl" placeholder="https://yourname.github.io/radar-monkey/"></label>
+
+  <div class="bar">
+    <button class="btn primary" id="save">Save</button><span id="saved" hidden>Saved</span>
+    <span style="flex:1"></span>
+    <button class="btn" id="export">Export settings</button>
+    <label class="btn" for="import" style="font-weight:400">Import settings</label><input type="file" id="import" accept=".json" hidden>
+  </div>
+</main>
+<script src="fields.js"></script>
+<script src="options.js"></script>
+</body></html>

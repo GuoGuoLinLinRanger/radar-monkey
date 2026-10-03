@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Radar Monkey Autofill",
+  "version": "1.0.0",
+  "description": "Fills job applications from your saved profile when you click. Never submits. Logs applications to your Radar Monkey tracker.",
+  "permissions": ["storage", "unlimitedStorage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://*.greenhouse.io/*",
+    "https://*.lever.co/*",
+    "https://*.ashbyhq.com/*",
+    "https://*.myworkdayjobs.com/*",
+    "https://*.myworkdaysite.com/*",
+    "https://*.icims.com/*",
+    "https://*.smartrecruiters.com/*",
+    "https://*.jobvite.com/*",
+    "https://*.workable.com/*",
+    "https://*.bamboohr.com/*",
+    "https://*.oraclecloud.com/*",
+    "https://*.successfactors.com/*",
+    "https://*.eightfold.ai/*",
+    "https://*.rippling.com/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_popup": "popup.html", "default_title": "Radar Monkey" },
+  "options_page": "options.html",
+  "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "commands": {
+    "fill-page": {
+      "suggested_key": { "default": "Alt+Shift+F" },
+      "description": "Fill this application page"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost/*", "http://127.0.0.1/*", "https://*.github.io/*", "file:///*"],
+      "js": ["bridge.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

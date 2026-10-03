@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="radar-monkey" content="2">
+<title>Radar Monkey</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐒</text></svg>">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #f6f7f9; --surface: #fff; --surface-2: #eef1f5; --fg: #16202c; --fg-2: #56657a; --line: #d9dfe7;
+  --accent: #1f5fbf; --accent-fg: #fff; --accent-soft: #e4edfb; --new: #0f7b5f; --new-soft: #dcf3ea;
+  --warn: #9a6100; --warn-soft: #fbeedb; --bad: #b3261e; --bad-soft: #fbe3e1;
+  --s-saved: #7a8699; --s-applied: #1f5fbf; --s-oa: #6a4fc2; --s-interview: #0f7b5f; --s-offer: #1e9e4a;
+  --s-rejected: #b3261e; --s-ghosted: #98a2b0; --s-withdrawn: #b08a25;
+  --font: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --radius: 6px;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f141a; --surface: #161d25; --surface-2: #1e2731; --fg: #e6ebf1; --fg-2: #9aa7b8; --line: #2b3643;
+  --accent: #6ea3ee; --accent-fg: #0f141a; --accent-soft: #1d2f48; --new: #4fc79f; --new-soft: #153328;
+  --warn: #e0a84a; --warn-soft: #3a2a10; --bad: #f28b82; --bad-soft: #3b1a18; --s-ghosted: #5d6877; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --surface-2: #1e2731; --fg: #e6ebf1; --fg-2: #9aa7b8; --line: #2b3643;
+  --accent: #6ea3ee; --accent-fg: #0f141a; --accent-soft: #1d2f48; --new: #4fc79f; --new-soft: #153328;
+  --warn: #e0a84a; --warn-soft: #3a2a10; --bad: #f28b82; --bad-soft: #3b1a18; --s-ghosted: #5d6877; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.45 var(--font); padding: 0 16px 48px; }
+a { color: var(--accent); }
+button, select, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 1280px; margin: 0 auto; }
+[hidden] { display: none !important; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 18px 0 10px; }
+.brand h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+.brand .sub { color: var(--fg-2); font-size: 13px; }
+nav.pages { display: flex; gap: 6px; flex-wrap: wrap; }
+nav.pages button { border: 1px solid var(--line); background: var(--surface); padding: 7px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+nav.pages button[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+nav.pages .n { font-weight: 500; opacity: .75; margin-left: 6px; font-size: 12px; }
+.meta { color: var(--fg-2); font-size: 12px; margin-left: auto; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.sync { display: inline-flex; align-items: center; gap: 5px; }
+.sync::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--s-ghosted); }
+.sync.on::before { background: var(--new); }
+.iconbtn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+
+.controls { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 8px 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-bottom: 1px solid var(--line); }
+.controls input[type=search] { flex: 1 1 260px; min-width: 200px; padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: none; padding: 6px 10px; cursor: pointer; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+select, .filters input[type=text], .filters input[type=number] { padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: var(--radius); cursor: pointer; text-decoration: none; color: var(--fg); display: inline-block; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.btn .badge { background: var(--accent); color: var(--accent-fg); border-radius: 9px; padding: 0 6px; font-size: 11px; margin-left: 6px; }
+
+.filters { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; margin: 10px 0; padding: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px 20px; }
+.filters h3 { font-size: 12px; font-weight: 600; color: var(--fg-2); margin: 0 0 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chips button { border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 3px 10px; font-size: 12px; cursor: pointer; }
+.chips button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.chips button .c { opacity: .6; margin-left: 5px; }
+.filters label.chk { display: flex; gap: 6px; align-items: center; font-size: 13px; padding: 2px 0; }
+.filters .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.filters input[type=text] { width: 100%; }
+.hint { color: var(--fg-2); font-size: 12px; margin-top: 6px; }
+
+.summary { display: flex; gap: 18px; flex-wrap: wrap; padding: 10px 2px; color: var(--fg-2); font-size: 13px; align-items: center; }
+.summary b { color: var(--fg); }
+.summary .btn { padding: 3px 10px; font-size: 12px; }
+.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: 12px; font-weight: 600; color: var(--fg-2); padding: 9px 10px; border-bottom: 1px solid var(--line); background: var(--surface-2); white-space: nowrap; }
+th.sortable { cursor: pointer; }
+th[aria-sort]::after { content: " ↓"; }
+td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr.row { cursor: pointer; }
+tr.row:hover td { background: var(--surface-2); }
+tr.row.closed td { opacity: .55; }
+td.title a { font-weight: 600; text-decoration: none; color: var(--fg); }
+td.title a:hover { color: var(--accent); text-decoration: underline; }
+td.title .co { color: var(--fg-2); }
+td.loc { max-width: 220px; color: var(--fg-2); }
+td.loc span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+td.pay, td.when, td.fit, td.mono { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+td.pay .alt { display: block; color: var(--fg-2); font-size: 11px; }
+td.star { width: 34px; text-align: center; padding-right: 0; }
+.star button { border: 0; background: none; cursor: pointer; font-size: 17px; color: var(--fg-2); padding: 0 2px; line-height: 1; }
+.star button.on { color: #d99a00; }
+.chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 10px; background: var(--surface-2); color: var(--fg-2); white-space: nowrap; margin: 1px 0; }
+.chip.new { background: var(--new-soft); color: var(--new); font-weight: 600; }
+.chip.remote { background: var(--accent-soft); color: var(--accent); }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+.chip.bad { background: var(--bad-soft); color: var(--bad); }
+.chip.st { color: #fff; font-weight: 600; }
+.none { color: var(--fg-2); }
+tr.detail td { background: var(--surface-2); }
+.detail .grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 20px; }
+@media (max-width: 760px) { .detail .grid { grid-template-columns: 1fr; } }
+.detail dt { font-weight: 600; font-size: 12px; color: var(--fg-2); margin-bottom: 4px; }
+.detail dd { margin: 0; white-space: pre-wrap; max-height: 340px; overflow: auto; font-size: 13px; }
+.detail .actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.detail textarea { width: 100%; min-height: 60px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 6px 8px; }
+.links a { margin-right: 12px; }
+.more { display: block; margin: 14px auto; }
+.empty { padding: 40px; text-align: center; color: var(--fg-2); }
+
+/* tracker */
+.pipe { display: flex; height: 48px; border-radius: 8px; overflow: hidden; margin: 14px 0 6px; background: var(--surface-2); border: 1px solid var(--line); }
+.pipe button { border: 0; color: #fff; font-weight: 600; font-size: 12px; cursor: pointer; min-width: 0; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 0 10px; overflow: hidden; white-space: nowrap; transition: flex-grow .3s; }
+.pipe button span { font-family: var(--mono); font-size: 16px; line-height: 1.1; }
+.pipe button[aria-pressed="true"] { box-shadow: inset 0 -4px 0 rgba(0,0,0,.35); }
+.stats { display: flex; gap: 22px; flex-wrap: wrap; color: var(--fg-2); font-size: 13px; padding: 6px 0 12px; }
+.stats b { color: var(--fg); font-family: var(--mono); font-size: 15px; }
+.nudge { background: var(--warn-soft); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; line-height: 1.7; }
+.nudge b { color: var(--warn); }
+.tbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.tbar input[type=search] { flex: 1 1 220px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.tracker td select, .tracker td input[type=date] { padding: 3px 6px; font-size: 13px; }
+.tracker td select { border-left-width: 4px; }
+.tracker td.notes textarea { width: 100%; min-width: 180px; min-height: 34px; border: 1px solid var(--line); border-radius: var(--radius); background: transparent; padding: 4px 6px; font-size: 13px; resize: vertical; }
+.addform { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+.addform input { padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); flex: 1 1 160px; }
+dialog { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); max-width: 560px; width: calc(100% - 32px); padding: 20px; }
+dialog::backdrop { background: rgba(10, 15, 25, .45); }
+dialog h2 { margin: 0 0 12px; font-size: 17px; }
+dialog label { display: block; font-weight: 600; font-size: 13px; margin: 12px 0 4px; }
+dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); padding: 6px 8px; }
+.toast { position: fixed; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 8px; font-size: 13px; z-index: 20; max-width: calc(100% - 32px); }
+@media (prefers-reduced-motion: reduce) { .pipe button { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1>Radar Monkey</h1><span class="sub">Early-career postings, filtered your way</span></div>
+    <nav class="pages" aria-label="Pages">
+      <button data-page="intern">Intern<span class="n" id="n-intern"></span></button>
+      <button data-page="newgrad">New grad<span class="n" id="n-newgrad"></span></button>
+      <button data-page="tracker">My applications<span class="n" id="n-tracker"></span></button>
+    </nav>
+    <div class="meta"><span id="meta"></span><span class="sync" id="sync" title="Chrome extension not connected">Extension</span><button class="iconbtn" id="open-settings">Settings</button></div>
+  </header>
+
+  <section id="feed">
+    <div class="controls">
+      <input type="search" id="q" placeholder="Search. Put - in front to exclude, e.g. backend -senior" autocomplete="off">
+      <div class="seg" id="country" role="group" aria-label="Country">
+        <button data-v="US">US</button><button data-v="CA">Canada</button><button data-v="Other">Other</button>
+      </div>
+      <div class="seg" id="model" role="group" aria-label="Work model">
+        <button data-v="On Site">On site</button><button data-v="Hybrid">Hybrid</button><button data-v="Remote">Remote</button>
+      </div>
+      <select id="posted" aria-label="Posted within">
+        <option value="1">Last 24 hours</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option>
+        <option value="14">Last 2 weeks</option><option value="30">Last 30 days</option><option value="0">Any time</option>
+      </select>
+      <select id="sort" aria-label="Sort">
+        <option value="newest">Newest posted</option><option value="seen">Newest on radar</option>
+        <option value="payhi">Pay: high to low</option><option value="paylo">Pay: low to high</option>
+        <option value="company">Company A to Z</option><option value="fit">Best fit</option>
+      </select>
+      <button class="btn" id="toggle-filters" aria-expanded="false" aria-controls="filters">More filters<span class="badge" id="nfilters" hidden></span></button>
+      <select id="presets" aria-label="Saved filters"></select>
+      <button class="btn" id="save-preset">Save filters</button>
+      <button class="btn" id="reset">Reset</button>
+    </div>
+
+    <div class="filters" id="filters" hidden>
+      <div><h3>Term</h3><div class="chips" id="f-terms"></div></div>
+      <div><h3>Field</h3><div class="chips" id="f-cats"></div></div>
+      <div><h3>Application site</h3><div class="chips" id="f-ats"></div><div class="hint">Autofill works best on Greenhouse, Lever, Ashby and Workday.</div></div>
+      <div><h3>Found on</h3><div class="chips" id="f-src"></div></div>
+      <div>
+        <h3>Visa and citizenship</h3>
+        <select id="spons" style="width:100%">
+          <option value="any">Show all</option>
+          <option value="nocitizen">Hide "US citizens only"</option>
+          <option value="noblock">Hide "citizens only" and "no sponsorship"</option>
+          <option value="yes">Only "offers sponsorship"</option>
+        </select>
+      </div>
+      <div>
+        <h3>Hide titles with</h3>
+        <label class="chk"><input type="checkbox" data-flag="senior"> Senior, staff, lead, manager</label>
+        <label class="chk"><input type="checkbox" data-flag="phd"> PhD</label>
+        <label class="chk"><input type="checkbox" data-flag="masters"> Master's</label>
+        <label class="chk"><input type="checkbox" data-flag="coop"> Co-op</label>
+      </div>
+      <div>
+        <h3>Pay</h3>
+        <div class="row"><label for="minpay">At least $/hr</label><input id="minpay" type="number" min="0" step="1" placeholder="0" style="width:80px"></div>
+        <label class="chk"><input type="checkbox" id="haspay"> Only postings that list pay</label>
+      </div>
+      <div>
+        <h3>Show</h3>
+        <label class="chk"><input type="checkbox" id="onlynew"> Only new since I last marked seen</label>
+        <label class="chk"><input type="checkbox" id="onlysaved"> Only starred</label>
+        <label class="chk"><input type="checkbox" id="hideapplied"> Hide jobs I've applied to</label>
+        <label class="chk"><input type="checkbox" id="showhidden"> Show jobs I hid</label>
+        <label class="chk"><input type="checkbox" id="showclosed"> Show closed postings</label>
+      </div>
+      <div>
+        <h3>Never show these companies</h3>
+        <input type="text" id="blocked" placeholder="Comma separated, e.g. Revature, SynergisticIT">
+        <div class="hint">Hide fit below <input id="minfit" type="number" min="0" max="100" step="5" placeholder="0" style="width:64px"> % (add your skills in Settings first).</div>
+      </div>
+    </div>
+
+    <div class="summary" id="summary"></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th class="star"><span hidden>Star</span></th><th>Role</th><th>Location</th><th>Model</th>
+          <th class="sortable" data-sort="payhi">Pay</th><th class="sortable" data-sort="newest">Posted</th>
+          <th class="sortable fitcol" data-sort="fit">Fit</th><th>Apply on</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <button class="btn more" id="more" hidden></button>
+    <div class="empty" id="empty" hidden>No postings match. Try a wider date range or clear a filter.</div>
+  </section>
+
+  <section id="tracker" class="tracker" hidden>
+    <div class="pipe" id="pipe" role="group" aria-label="Filter by status"></div>
+    <div class="stats" id="stats"></div>
+    <div id="nudges"></div>
+    <div class="tbar">
+      <input type="search" id="tq" placeholder="Search my applications">
+      <button class="btn" id="add-toggle">Add one by hand</button>
+      <button class="btn" id="export-json">Back up</button>
+      <button class="btn" id="export-csv">Export CSV</button>
+      <label class="btn" for="import-json">Restore backup</label><input type="file" id="import-json" accept=".json,application/json" hidden>
+    </div>
+    <form class="addform" id="addform" hidden>
+      <input name="company" placeholder="Company" required><input name="title" placeholder="Role" required>
+      <input name="url" placeholder="Link (optional)"><button class="btn primary">Add as applied</button>
+    </form>
+    <div class="tablewrap" style="margin-top:12px">
+      <table>
+        <thead><tr><th>Role</th><th>Status</th><th>Applied</th><th>Last change</th><th>Follow up on</th><th>Notes</th><th><span hidden>Remove</span></th></tr></thead>
+        <tbody id="trows"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="tempty" hidden>Nothing here yet. Star a posting or mark it applied and it shows up here. The Chrome extension can log applications too.</div>
+  </section>
+</div>
+
+<dialog id="settings">
+  <h2>Settings</h2>
+  <label for="s-keywords">Your skills and interests (for the fit score)</label>
+  <textarea id="s-keywords" rows="3" placeholder="python, react, distributed systems, kubernetes, ml"></textarea>
+  <div class="hint">Comma separated. Fit is the share of these that show up in the title and posting text.</div>
+  <label for="s-deal">Warn me when a posting mentions</label>
+  <textarea id="s-deal" rows="2" placeholder="security clearance, us citizen, phd required"></textarea>
+  <label for="s-paymode">Show pay as</label>
+  <select id="s-paymode"><option value="auto">Hourly for interns, yearly for new grad</option><option value="hourly">Always hourly</option><option value="annual">Always yearly</option></select>
+  <label for="s-theme">Theme</label>
+  <select id="s-theme"><option value="">Match my system</option><option value="light">Light</option><option value="dark">Dark</option></select>
+  <div style="display:flex;gap:8px;justify-content:space-between;margin-top:18px;flex-wrap:wrap">
+    <button class="btn" id="s-clear">Unhide all hidden jobs</button>
+    <div style="display:flex;gap:8px"><button class="btn" id="s-cancel">Cancel</button><button class="btn primary" id="s-save">Save settings</button></div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="jobs.js"></script>
+<script>
+(function () {
+  'use strict';
+  const PAGE_SIZE = 100, DAY = 86400000;
+  const STATUSES = [
+    ['saved', 'Starred'], ['applied', 'Applied'], ['oa', 'Online assessment'], ['interview', 'Interviewing'],
+    ['offer', 'Offer'], ['rejected', 'Rejected'], ['ghosted', 'No response'], ['withdrawn', 'Withdrawn'],
+  ];
+  const ACTIVE = new Set(['applied', 'oa', 'interview']);
+  const LABEL = Object.fromEntries(STATUSES);
+  const SRC_LABEL = { simplify: 'Simplify', jobright: 'Jobright', watch: 'My watchlist' };
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const ymd = (d) => d.toLocaleDateString('en-CA');  // YYYY-MM-DD in your time zone
+  const today = () => ymd(new Date());
+  const nowIso = () => new Date().toISOString();
+  const host = (u) => { try { return new URL(u).host; } catch (e) { return u; } };
+
+  // ---------- storage ----------
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('rm2-' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('rm2-' + k, JSON.stringify(v)); } catch (e) {} },
+  };
+  const DEFAULT_F = {
+    q: '', country: ['US', 'CA'], model: [], posted: 0, sort: 'newest', terms: [], cats: [], ats: [], src: [],
+    spons: 'any', hideFlags: [], minpay: 0, haspay: false, onlynew: false, onlysaved: false,
+    hideapplied: true, showhidden: false, showclosed: false, blocked: '', minfit: 0,
+  };
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const state = { page: 'intern', f: Object.assign(clone(DEFAULT_F), store.get('filters', {})), open: null, shown: PAGE_SIZE, tstatus: '', tq: '' };
+  let tracker = store.get('tracker', {});
+  let hidden = new Set(store.get('hidden', []));
+  let presets = store.get('presets', {});
+  let settings = Object.assign({ keywords: '', deal: '', paymode: 'auto', theme: '' }, store.get('settings', {}));
+
+  // ---------- data ----------
+  const raw = window.RADAR_DATA || { generated: '', jobs: [] };
+  const normUrl = (u) => { try { const x = new URL(u); return (x.host + x.pathname).replace(/\/+$/, '').toLowerCase(); } catch (e) { return String(u || '').toLowerCase(); } };
+  function prep(j) {
+    j.ts = Date.parse(j.posted_at) || 0;
+    j.seen = Date.parse(j.first_seen) || j.ts;
+    j.pay = j.pay || {};
+    j.hasPay = !!j.pay.annual_max;
+    j.alt_urls = j.alt_urls || [];
+    j.text = (j.title + ' ' + (j.qualifications || '') + ' ' + (j.description || '')).toLowerCase();
+    j.hay = (j.title + ' ' + j.company + ' ' + j.locations.join(' ') + ' ' + j.terms.join(' ')).toLowerCase();
+    return j;
+  }
+  const jobs = raw.jobs.map(prep);
+  const byId = new Map(jobs.map(j => [j.id, j]));
+  const byUrl = new Map();
+  jobs.forEach(j => [j.url, ...j.alt_urls].forEach(u => u && byUrl.set(normUrl(u), j)));
+  let seenAt = store.get('seenAt', null);
+  if (seenAt == null) { seenAt = raw.generated || nowIso(); store.set('seenAt', seenAt); }
+
+  function scoreAll() {
+    const kws = settings.keywords.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    const deal = settings.deal.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    for (const j of jobs) {
+      j.fit = kws.length ? Math.round(100 * kws.filter(k => j.text.includes(k)).length / kws.length) : null;
+      j.deal = deal.filter(d => j.text.includes(d));
+    }
+    document.querySelectorAll('.fitcol').forEach(el => el.hidden = !kws.length);
+  }
+
+  // ---------- formatting ----------
+  const money = (cur) => cur === 'CAD' ? 'CA$' : cur === 'EUR' ? '€' : cur === 'GBP' ? '£' : '$';
+  function payCell(j) {
+    if (!j.hasPay) return '<span class="none">—</span>';
+    const p = j.pay, m = money(p.currency);
+    const rng = (a, b, f) => f(a) === f(b) ? f(a) : f(a) + '–' + f(b);
+    const hr = rng(p.hourly_min, p.hourly_max, v => m + Math.round(v)) + '/hr';
+    const yr = rng(p.annual_min, p.annual_max, v => m + Math.round(v / 1000) + 'k') + '/yr';
+    const hourly = settings.paymode === 'hourly' || (settings.paymode === 'auto' && j.kind === 'intern');
+    return hourly ? `${hr}<span class="alt">${yr}</span>` : `${yr}<span class="alt">${hr}</span>`;
+  }
+  function ago(ts) {
+    if (!ts) return '';
+    const s = (Date.now() - ts) / 1000;
+    if (s < 3600) return Math.max(1, Math.round(s / 60)) + 'm ago';
+    if (s < 86400) return Math.round(s / 3600) + 'h ago';
+    if (s < 86400 * 30) return Math.round(s / 86400) + 'd ago';
+    return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+  const daysSince = (d) => d ? Math.floor((Date.now() - Date.parse(d)) / DAY) : null;
+  const statusChip = (s) => ` <span class="chip st" style="background:var(--s-${s})">${esc(LABEL[s] || s)}</span>`;
+  const sponsChip = (s) => s === 'citizen' ? ' <span class="chip bad">US citizens only</span>' : s === 'no' ? ' <span class="chip warn">No visa sponsorship</span>' : s === 'yes' ? ' <span class="chip remote">Sponsors visas</span>' : '';
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2400); }
+
+  // ---------- tracker ops ----------
+  const snapshot = (j) => ({ id: j.id, title: j.title, company: j.company, url: j.url, location: j.locations.join('; '), kind: j.kind });
+  function setStatus(id, status, base) {
+    if (!status) { if (tracker[id]) { pushToExtension([Object.assign({}, tracker[id], { status: '__deleted', updated: nowIso() })]); delete tracker[id]; } return saveTracker(); }
+    let e = tracker[id];
+    if (!e) { const j = byId.get(id); e = tracker[id] = Object.assign({ dates: {}, notes: '', follow_up: '' }, base || (j ? snapshot(j) : { id })); }
+    e.status = status;
+    e.dates = e.dates || {};
+    if (!e.dates[status]) e.dates[status] = today();
+    if (status === 'applied' && !e.follow_up) e.follow_up = ymd(new Date(Date.now() + 14 * DAY));
+    e.updated = nowIso();
+    saveTracker();
+  }
+  function saveTracker() { store.set('tracker', tracker); pushToExtension(); }
+  function setHidden(id, on) { on ? hidden.add(id) : hidden.delete(id); store.set('hidden', [...hidden]); }
+
+  // ---------- filtering ----------
+  function counts(list, key) {
+    const c = new Map();
+    for (const j of list) { const v = j[key]; for (const x of Array.isArray(v) ? v : [v]) if (x) c.set(x, (c.get(x) || 0) + 1); }
+    return [...c.entries()].sort((a, b) => b[1] - a[1]);
+  }
+  function filtered() {
+    const f = state.f;
+    const words = f.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const inc = words.filter(w => !w.startsWith('-'));
+    const exc = words.filter(w => w.startsWith('-') && w.length > 1).map(w => w.slice(1));
+    const cutoff = f.posted ? Date.now() - f.posted * DAY : 0;
+    const blocked = f.blocked.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    const S = (a) => new Set(a);
+    const country = S(f.country), model = S(f.model), terms = S(f.terms), cats = S(f.cats), ats = S(f.ats), src = S(f.src), flags = S(f.hideFlags);
+    const seenTs = Date.parse(seenAt) || 0;
+    const out = jobs.filter(j => {
+      if (j.kind !== state.page) return false;
+      if (!f.showclosed && !j.active) return false;
+      if (!f.showhidden && hidden.has(j.id)) return false;
+      const t = tracker[j.id];
+      if (f.hideapplied && t && t.status !== 'saved') return false;
+      if (f.onlysaved && !(t && t.status === 'saved')) return false;
+      if (country.size && !j.countries.some(c => country.has(c))) return false;
+      if (model.size && !model.has(j.work_model) && !(model.has('Remote') && j.remote_ok)) return false;
+      if (terms.size && !j.terms.some(x => terms.has(x))) return false;
+      if (cats.size && !cats.has(j.category)) return false;
+      if (ats.size && !ats.has(j.ats)) return false;
+      if (src.size && !j.sources.some(s => src.has(s))) return false;
+      if (flags.size && j.flags.some(x => flags.has(x))) return false;
+      if (f.spons === 'nocitizen' && j.sponsorship === 'citizen') return false;
+      if (f.spons === 'noblock' && (j.sponsorship === 'citizen' || j.sponsorship === 'no')) return false;
+      if (f.spons === 'yes' && j.sponsorship !== 'yes') return false;
+      if (cutoff && j.ts < cutoff) return false;
+      if (f.haspay && !j.hasPay) return false;
+      if (f.minpay && j.hasPay && j.pay.hourly_max < f.minpay) return false;
+      if (f.onlynew && j.seen <= seenTs) return false;
+      if (blocked.length && blocked.some(b => j.company.toLowerCase().includes(b))) return false;
+      if (f.minfit && j.fit != null && j.fit < f.minfit) return false;
+      if (inc.length && !inc.every(w => j.hay.includes(w))) return false;
+      if (exc.length && exc.some(w => j.hay.includes(w))) return false;
+      return true;
+    });
+    const cmp = {
+      newest: (a, b) => b.ts - a.ts,
+      seen: (a, b) => (b.seen - a.seen) || (b.ts - a.ts),
+      payhi: (a, b) => ((b.pay.annual_max || 0) - (a.pay.annual_max || 0)) || (b.ts - a.ts),
+      paylo: (a, b) => ((a.hasPay ? a.pay.annual_min : 1e12) - (b.hasPay ? b.pay.annual_min : 1e12)) || (b.ts - a.ts),
+      company: (a, b) => a.company.localeCompare(b.company) || (b.ts - a.ts),
+      fit: (a, b) => ((b.fit || 0) - (a.fit || 0)) || (b.ts - a.ts),
+    }[f.sort] || ((a, b) => b.ts - a.ts);
+    return out.sort(cmp);
+  }
+  function activeFilterCount() {
+    const f = state.f;
+    return f.terms.length + f.cats.length + f.ats.length + f.src.length + f.hideFlags.length + (f.spons !== 'any') + !!f.minpay + f.haspay + f.onlynew + f.onlysaved + !f.hideapplied + f.showhidden + f.showclosed + !!f.blocked.trim() + !!f.minfit;
+  }
+
+  // ---------- render: feed ----------
+  function renderChips(el, key, pairs, labelFn) {
+    const on = new Set(state.f[key]);
+    $(el).innerHTML = pairs.map(([v, c]) => `<button data-k="${key}" data-v="${esc(v)}" aria-pressed="${on.has(v)}">${esc(labelFn ? labelFn(v) : v)}<span class="c">${c}</span></button>`).join('') || '<span class="hint">None in this list</span>';
+  }
+  function renderFilters() {
+    const pool = jobs.filter(j => j.kind === state.page && j.active);
+    renderChips('f-terms', 'terms', counts(pool, 'terms').slice(0, 10));
+    renderChips('f-cats', 'cats', counts(pool, 'category'));
+    renderChips('f-ats', 'ats', counts(pool, 'ats').slice(0, 12));
+    renderChips('f-src', 'src', counts(pool, 'sources'), v => SRC_LABEL[v] || v);
+    const f = state.f;
+    $('spons').value = f.spons; $('minpay').value = f.minpay || ''; $('haspay').checked = f.haspay;
+    $('onlynew').checked = f.onlynew; $('onlysaved').checked = f.onlysaved; $('hideapplied').checked = f.hideapplied;
+    $('showhidden').checked = f.showhidden; $('showclosed').checked = f.showclosed;
+    if (document.activeElement !== $('blocked')) $('blocked').value = f.blocked;
+    $('minfit').value = f.minfit || '';
+    document.querySelectorAll('[data-flag]').forEach(cb => cb.checked = f.hideFlags.includes(cb.dataset.flag));
+    const n = activeFilterCount(); $('nfilters').hidden = !n; $('nfilters').textContent = n;
+    const names = Object.keys(presets);
+    $('presets').innerHTML = '<option value="">Saved filters</option>' + names.map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join('') + (names.length ? '<option value="__del">Delete a saved filter…</option>' : '');
+  }
+
+  function render() {
+    const page = state.page;
+    document.querySelectorAll('nav.pages button').forEach(b => b.setAttribute('aria-current', b.dataset.page === page ? 'page' : 'false'));
+    $('feed').hidden = page === 'tracker'; $('tracker').hidden = page !== 'tracker';
+    const live = jobs.filter(j => j.active);
+    $('n-intern').textContent = live.filter(j => j.kind === 'intern').length.toLocaleString();
+    $('n-newgrad').textContent = live.filter(j => j.kind === 'newgrad').length.toLocaleString();
+    $('n-tracker').textContent = Object.values(tracker).filter(e => ACTIVE.has(e.status)).length || '';
+    if (page === 'tracker') return renderTracker();
+
+    const f = state.f;
+    document.querySelectorAll('#country button').forEach(b => b.setAttribute('aria-pressed', f.country.includes(b.dataset.v)));
+    document.querySelectorAll('#model button').forEach(b => b.setAttribute('aria-pressed', f.model.includes(b.dataset.v)));
+    $('sort').value = f.sort; $('posted').value = String(f.posted);
+    if ($('q').value !== f.q && document.activeElement !== $('q')) $('q').value = f.q;
+    document.querySelectorAll('th.sortable').forEach(th => th.toggleAttribute('aria-sort', th.dataset.sort === f.sort || (th.dataset.sort === 'payhi' && f.sort === 'paylo')));
+    renderFilters();
+
+    const rows = filtered();
+    const seenTs = Date.parse(seenAt) || 0;
+    const fresh = rows.filter(j => j.seen > seenTs).length;
+    $('summary').innerHTML = `<span><b>${rows.length.toLocaleString()}</b> postings</span><span><b>${rows.filter(j => j.hasPay).length.toLocaleString()}</b> list pay</span><span><b>${rows.filter(j => Date.now() - j.ts < DAY).length}</b> posted in the last 24h</span><span><b>${fresh}</b> new since you last looked</span>${fresh ? '<button class="btn" id="markseen">Mark all seen</button>' : ''}`;
+    $('empty').hidden = rows.length > 0;
+    const showFit = !!settings.keywords.trim();
+    const html = [];
+    for (const j of rows.slice(0, state.shown)) {
+      const t = tracker[j.id];
+      const open = state.open === j.id;
+      const tracked = t && t.status !== 'saved';
+      html.push(`<tr class="row${j.active ? '' : ' closed'}" data-id="${j.id}" aria-expanded="${open}">
+        <td class="star">${tracked ? '' : `<button class="${t ? 'on' : ''}" data-act="star" aria-label="${t ? 'Unstar' : 'Star'}">${t ? '★' : '☆'}</button>`}</td>
+        <td class="title"><a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a> <span class="co">· ${esc(j.company)}</span>${tracked ? statusChip(t.status) : ''}${j.seen > seenTs ? ' <span class="chip new">new</span>' : ''}${j.active ? '' : ' <span class="chip bad">closed</span>'}${sponsChip(j.sponsorship)}${j.deal && j.deal.length ? ` <span class="chip warn">mentions ${esc(j.deal.join(', '))}</span>` : ''}</td>
+        <td class="loc"><span title="${esc(j.locations.join('\n'))}">${esc(j.locations[0] || '—')}${j.locations.length > 1 ? ` +${j.locations.length - 1}` : ''}</span></td>
+        <td>${j.work_model ? `<span class="chip${j.work_model === 'Remote' ? ' remote' : ''}">${esc(j.work_model)}</span>` : ''}</td>
+        <td class="pay">${payCell(j)}</td>
+        <td class="when">${ago(j.ts)}</td>
+        <td class="fit fitcol"${showFit ? '' : ' hidden'}>${j.fit == null ? '' : j.fit + '%'}</td>
+        <td><span class="chip">${esc(j.ats)}</span></td></tr>`);
+      if (open) html.push(detailRow(j, t));
+    }
+    $('rows').innerHTML = html.join('');
+    const left = rows.length - state.shown;
+    $('more').hidden = left <= 0;
+    $('more').textContent = `Show ${Math.min(PAGE_SIZE, left)} more (${left.toLocaleString()} left)`;
+    store.set('filters', state.f);
+  }
+
+  function detailRow(j, t) {
+    const facts = [
+      j.terms.length && 'Term: ' + j.terms.join(', '),
+      'Field: ' + j.category,
+      j.locations.length > 1 && 'Locations:\n  ' + j.locations.join('\n  '),
+      j.degrees && j.degrees.length && 'Degree: ' + j.degrees.join(', '),
+      j.sponsorship !== 'unknown' && 'Visa: ' + ({ yes: 'offers sponsorship', no: 'no sponsorship', citizen: 'US citizens only' }[j.sponsorship]),
+      'Posted: ' + new Date(j.ts).toLocaleString(),
+      'First on radar: ' + new Date(j.seen).toLocaleString(),
+      'Found on: ' + j.sources.map(s => SRC_LABEL[s] || s).join(', '),
+    ].filter(Boolean).join('\n');
+    const body = j.qualifications || j.description || '';
+    const sel = STATUSES.map(([v, l]) => `<option value="${v}"${t && t.status === v ? ' selected' : ''}>${l}</option>`).join('');
+    return `<tr class="detail"><td colspan="8"><div class="detail"><div class="grid">
+      <div><dt>${j.qualifications ? 'What they ask for' : 'Posting'}</dt><dd>${body ? esc(body) : '<span class="none">No posting text on file yet. Open the link to read it.</span>'}</dd></div>
+      <div>
+        <dt>Details</dt><dd>${esc(facts)}</dd>
+        <div class="actions">
+          <a class="btn primary" href="${esc(j.url)}" target="_blank" rel="noopener">Open application</a>
+          <button class="btn" data-act="applied" data-id="${j.id}">${t && t.status === 'applied' ? 'Applied ✓' : 'I applied'}</button>
+          <select data-act="status" data-id="${j.id}" aria-label="Status"><option value="">Not tracked</option>${sel}</select>
+          <button class="btn" data-act="tailor" data-id="${j.id}">Copy for resume tailoring</button>
+          <button class="btn" data-act="hide" data-id="${j.id}">${hidden.has(j.id) ? 'Unhide' : 'Hide'}</button>
+        </div>
+        <dt>My notes</dt><textarea data-act="notes" data-id="${j.id}" placeholder="Referral, recruiter name, anything">${esc(t ? t.notes : '')}</textarea>
+        ${j.alt_urls.length ? `<dt style="margin-top:8px">Also listed at</dt><dd class="links">${j.alt_urls.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join('')}</dd>` : ''}
+      </div></div></div></td></tr>`;
+  }
+
+  function tailorPacket(j) {
+    const pay = j.hasPay ? `${money(j.pay.currency)}${Math.round(j.pay.hourly_min)}–${Math.round(j.pay.hourly_max)}/hr` : 'not listed';
+    return `Use the tight-job-tailor skill on this posting with my resume (attached).\n\n# ${j.title} — ${j.company}\nLink: ${j.url}\nLocation: ${j.locations.join('; ')}${j.work_model ? ' (' + j.work_model + ')' : ''}\nTerm: ${j.terms.join(', ') || 'n/a'}\nPay: ${pay}\n\n## Posting\n${j.description || j.qualifications || '(No text on file. Paste the full posting here, or let the skill read the link.)'}\n`;
+  }
+
+  // ---------- render: tracker ----------
+  function renderTracker() {
+    const all = Object.values(tracker);
+    const by = {};
+    all.forEach(e => by[e.status] = (by[e.status] || 0) + 1);
+    const total = all.length || 1;
+    $('pipe').innerHTML = STATUSES.filter(([s]) => by[s]).map(([s, l]) =>
+      `<button style="background:var(--s-${s});flex-grow:${Math.max(by[s], total * 0.07)}" data-s="${s}" aria-pressed="${state.tstatus === s}" title="${l}"><span>${by[s]}</span>${l}</button>`).join('')
+      || '<div style="padding:14px;color:var(--fg-2)">Your pipeline shows up here once you track something.</div>';
+    const applied = all.filter(e => e.dates && e.dates.applied);
+    const replied = (e) => ['oa', 'interview', 'offer', 'rejected'].map(s => e.dates[s]).filter(Boolean).sort()[0];
+    const positive = applied.filter(e => e.dates.oa || e.dates.interview || e.dates.offer);
+    const waits = applied.map(e => { const r = replied(e); return r ? (Date.parse(r) - Date.parse(e.dates.applied)) / DAY : null; }).filter(x => x != null && x >= 0);
+    $('stats').innerHTML = `<span><b>${applied.length}</b> applied</span><span><b>${applied.filter(e => daysSince(e.dates.applied) < 7).length}</b> this week</span>
+      <span><b>${applied.length ? Math.round(100 * positive.length / applied.length) : 0}%</b> got an OA or interview</span>
+      <span><b>${by.interview || 0}</b> interviewing</span><span><b>${by.offer || 0}</b> offers</span>
+      <span><b>${waits.length ? Math.round(waits.reduce((a, b) => a + b, 0) / waits.length) : '–'}</b> days to first reply, on average</span>`;
+
+    const due = all.filter(e => ACTIVE.has(e.status) && e.follow_up && e.follow_up <= today());
+    const stale = all.filter(e => e.status === 'applied' && daysSince(e.dates.applied) >= 30);
+    const closed = all.filter(e => e.status === 'saved' && byId.get(e.id) && !byId.get(e.id).active);
+    const names = (l) => l.slice(0, 4).map(e => esc(e.company)).join(', ') + (l.length > 4 ? '…' : '');
+    const nudges = [];
+    if (due.length) nudges.push(`<b>${due.length}</b> follow-up${due.length > 1 ? 's' : ''} due: ${names(due)}. A short note to the recruiter, or asking for a referral, can help.`);
+    if (stale.length) nudges.push(`<b>${stale.length}</b> applied 30+ days ago with no change. <button class="btn" id="ghost-all" style="padding:1px 8px;font-size:12px">Mark as no response</button>`);
+    if (closed.length) nudges.push(`<b>${closed.length}</b> starred posting${closed.length > 1 ? 's have' : ' has'} closed: ${names(closed)}.`);
+    $('nudges').innerHTML = nudges.length ? `<div class="nudge">${nudges.join('<br>')}</div>` : '';
+
+    const q = state.tq.trim().toLowerCase();
+    const list = all.filter(e => (!state.tstatus || e.status === state.tstatus) && (!q || (e.company + ' ' + e.title + ' ' + (e.notes || '')).toLowerCase().includes(q)))
+      .sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
+    $('tempty').hidden = list.length > 0;
+    $('trows').innerHTML = list.map(e => {
+      const j = byId.get(e.id);
+      const opts = STATUSES.map(([v, l]) => `<option value="${v}"${e.status === v ? ' selected' : ''}>${l}</option>`).join('');
+      return `<tr data-id="${esc(e.id)}">
+        <td class="title">${e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title)}</a>` : esc(e.title)} <span class="co">· ${esc(e.company)}</span>${j && !j.active ? ' <span class="chip bad">posting closed</span>' : ''}</td>
+        <td><select data-t="status" aria-label="Status" style="border-left-color:var(--s-${e.status})">${opts}</select></td>
+        <td class="mono">${e.dates && e.dates.applied ? esc(e.dates.applied) : '—'}</td>
+        <td class="mono">${e.updated ? ago(Date.parse(e.updated)) : ''}</td>
+        <td><input type="date" data-t="follow" aria-label="Follow up on" value="${esc(e.follow_up || '')}"></td>
+        <td class="notes"><textarea data-t="notes" rows="1" aria-label="Notes">${esc(e.notes || '')}</textarea></td>
+        <td><button class="btn" data-t="del" aria-label="Remove" style="padding:2px 8px">✕</button></td></tr>`;
+    }).join('');
+  }
+
+  // ---------- events: feed ----------
+  function setPage(p) { state.page = p; state.open = null; state.shown = PAGE_SIZE; if (location.hash !== '#' + p) history.replaceState(null, '', '#' + p); render(); }
+  document.querySelectorAll('nav.pages button').forEach(b => b.addEventListener('click', () => setPage(b.dataset.page)));
+  window.addEventListener('hashchange', () => { const p = location.hash.slice(1); if (['intern', 'newgrad', 'tracker'].includes(p)) setPage(p); });
+  const upd = (fn) => { fn(state.f); state.shown = PAGE_SIZE; render(); };
+  const toggleIn = (arr, v) => arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v];
+  let qt; $('q').addEventListener('input', e => { clearTimeout(qt); qt = setTimeout(() => upd(f => f.q = e.target.value), 120); });
+  $('country').addEventListener('click', e => { const b = e.target.closest('button'); if (b) upd(f => f.country = toggleIn(f.country, b.dataset.v)); });
+  $('model').addEventListener('click', e => { const b = e.target.closest('button'); if (b) upd(f => f.model = toggleIn(f.model, b.dataset.v)); });
+  $('posted').addEventListener('change', e => upd(f => f.posted = +e.target.value));
+  $('sort').addEventListener('change', e => upd(f => f.sort = e.target.value));
+  document.querySelectorAll('th.sortable').forEach(th => th.addEventListener('click', () => upd(f => f.sort = th.dataset.sort === 'payhi' && f.sort === 'payhi' ? 'paylo' : th.dataset.sort)));
+  $('toggle-filters').addEventListener('click', () => { const show = $('filters').hidden; $('filters').hidden = !show; $('toggle-filters').setAttribute('aria-expanded', show); });
+  $('filters').addEventListener('click', e => { const b = e.target.closest('.chips button'); if (b) upd(f => f[b.dataset.k] = toggleIn(f[b.dataset.k], b.dataset.v)); });
+  $('filters').addEventListener('change', e => {
+    const el = e.target;
+    if (el.dataset.flag) return upd(f => f.hideFlags = toggleIn(f.hideFlags, el.dataset.flag));
+    if (el.id === 'spons') return upd(f => f.spons = el.value);
+    if (el.id === 'minpay' || el.id === 'minfit') return upd(f => f[el.id] = +el.value || 0);
+    if (el.type === 'checkbox' && el.id in DEFAULT_F) upd(f => f[el.id] = el.checked);
+  });
+  let bt; $('blocked').addEventListener('input', e => { clearTimeout(bt); bt = setTimeout(() => upd(f => f.blocked = e.target.value), 300); });
+  $('reset').addEventListener('click', () => { state.f = clone(DEFAULT_F); state.shown = PAGE_SIZE; $('q').value = ''; render(); });
+  $('more').addEventListener('click', () => { state.shown += PAGE_SIZE; render(); });
+  $('save-preset').addEventListener('click', () => {
+    const name = (prompt('Name these filters, e.g. "SWE Canada, paid"') || '').trim();
+    if (!name) return;
+    presets[name] = clone(state.f); store.set('presets', presets); render(); toast(`Saved filters "${name}"`);
+  });
+  $('presets').addEventListener('change', e => {
+    const v = e.target.value;
+    if (v === '__del') {
+      const n = (prompt('Type the name of the saved filter to delete:\n\n' + Object.keys(presets).join('\n')) || '').trim();
+      if (presets[n]) { delete presets[n]; store.set('presets', presets); toast(`Deleted "${n}"`); }
+    } else if (presets[v]) { state.f = Object.assign(clone(DEFAULT_F), clone(presets[v])); state.shown = PAGE_SIZE; $('q').value = state.f.q; }
+    render();
+  });
+  $('summary').addEventListener('click', e => { if (e.target.id === 'markseen') { seenAt = nowIso(); store.set('seenAt', seenAt); render(); toast('Marked all as seen'); } });
+
+  $('rows').addEventListener('click', e => {
+    if (e.target.closest('a, select, textarea')) return;
+    const act = e.target.closest('button[data-act]');
+    if (act) {
+      const id = act.dataset.id || act.closest('tr').dataset.id;
+      const a = act.dataset.act;
+      if (a === 'star') { setStatus(id, tracker[id] ? null : 'saved'); render(); }
+      else if (a === 'applied') { setStatus(id, 'applied'); render(); toast('Marked applied. Follow-up reminder set for 2 weeks out.'); }
+      else if (a === 'hide') { setHidden(id, !hidden.has(id)); state.open = null; render(); toast(hidden.has(id) ? 'Hidden. Turn on "Show jobs I hid" to see it again.' : 'Unhidden'); }
+      else if (a === 'tailor') { navigator.clipboard.writeText(tailorPacket(byId.get(id))).then(() => toast('Copied. Paste it into Claude with your resume.'), () => toast('Could not copy. Your browser blocked the clipboard.')); }
+      return;
+    }
+    const tr = e.target.closest('tr.row');
+    if (tr) { state.open = state.open === tr.dataset.id ? null : tr.dataset.id; render(); }
+  });
+  $('rows').addEventListener('change', e => { if (e.target.dataset.act === 'status') { setStatus(e.target.dataset.id, e.target.value || null); render(); } });
+  $('rows').addEventListener('input', e => {
+    const el = e.target;
+    if (el.dataset.act !== 'notes') return;
+    const id = el.dataset.id;
+    if (!tracker[id]) setStatus(id, 'saved');
+    tracker[id].notes = el.value; tracker[id].updated = nowIso();
+    clearTimeout(el.t); el.t = setTimeout(saveTracker, 400);
+  });
+
+  // ---------- events: tracker ----------
+  $('pipe').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { state.tstatus = state.tstatus === b.dataset.s ? '' : b.dataset.s; render(); } });
+  $('tq').addEventListener('input', e => { state.tq = e.target.value; render(); });
+  $('nudges').addEventListener('click', e => {
+    if (e.target.id !== 'ghost-all') return;
+    Object.values(tracker).forEach(t => { if (t.status === 'applied' && daysSince(t.dates.applied) >= 30) setStatus(t.id, 'ghosted'); });
+    render();
+  });
+  $('trows').addEventListener('change', e => {
+    const id = e.target.closest('tr').dataset.id, t = e.target.dataset.t;
+    if (t === 'status') setStatus(id, e.target.value);
+    if (t === 'follow') { tracker[id].follow_up = e.target.value; tracker[id].updated = nowIso(); saveTracker(); }
+    if (t === 'status' || t === 'follow') render();
+  });
+  $('trows').addEventListener('input', e => {
+    if (e.target.dataset.t !== 'notes') return;
+    const id = e.target.closest('tr').dataset.id;
+    tracker[id].notes = e.target.value; tracker[id].updated = nowIso();
+    clearTimeout(e.target.t); e.target.t = setTimeout(saveTracker, 400);
+  });
+  $('trows').addEventListener('click', e => {
+    const b = e.target.closest('[data-t="del"]'); if (!b) return;
+    const id = b.closest('tr').dataset.id, x = tracker[id];
+    if (confirm(`Remove ${x.company}: ${x.title} from your tracker?`)) { setStatus(id, null); render(); }
+  });
+  $('add-toggle').addEventListener('click', () => { $('addform').hidden = !$('addform').hidden; });
+  $('addform').addEventListener('submit', e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const url = String(fd.get('url') || '').trim();
+    const match = url && byUrl.get(normUrl(url));
+    const id = match ? match.id : 'm:' + Date.now().toString(36);
+    setStatus(id, 'applied', match ? snapshot(match) : { id, company: String(fd.get('company')).trim(), title: String(fd.get('title')).trim(), url, location: '', kind: '' });
+    e.target.reset(); render(); toast('Added');
+  });
+  function download(name, text, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }
+  $('export-json').addEventListener('click', () => download(`radar-monkey-backup-${today()}.json`, JSON.stringify({ version: 2, tracker, hidden: [...hidden], presets, settings }, null, 1), 'application/json'));
+  $('export-csv').addEventListener('click', () => {
+    const cols = ['company', 'title', 'status', 'applied', 'oa', 'interview', 'offer', 'rejected', 'follow_up', 'url', 'location', 'notes'];
+    const q = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+    const dated = new Set(['applied', 'oa', 'interview', 'offer', 'rejected']);
+    const lines = [cols.join(',')].concat(Object.values(tracker).map(e => cols.map(c => q(dated.has(c) ? (e.dates || {})[c] : c === 'status' ? LABEL[e.status] : e[c])).join(',')));
+    download(`radar-monkey-applications-${today()}.csv`, lines.join('\n'), 'text/csv');
+  });
+  $('import-json').addEventListener('change', async e => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      const d = JSON.parse(await file.text());
+      if (!d.tracker) throw new Error('no tracker');
+      mergeEntries(Object.values(d.tracker));
+      (d.hidden || []).forEach(id => hidden.add(id)); store.set('hidden', [...hidden]);
+      Object.assign(presets, d.presets || {}); store.set('presets', presets);
+      if (d.settings) { Object.assign(settings, d.settings); store.set('settings', settings); applyTheme(); scoreAll(); }
+      saveTracker(); render(); toast('Backup restored');
+    } catch (err) { toast('That file is not a Radar Monkey backup.'); }
+    e.target.value = '';
+  });
+
+  // ---------- settings ----------
+  function applyTheme() { if (settings.theme) document.documentElement.dataset.theme = settings.theme; else delete document.documentElement.dataset.theme; }
+  $('open-settings').addEventListener('click', () => {
+    $('s-keywords').value = settings.keywords; $('s-deal').value = settings.deal; $('s-paymode').value = settings.paymode; $('s-theme').value = settings.theme;
+    $('settings').showModal();
+  });
+  $('s-cancel').addEventListener('click', () => $('settings').close());
+  $('s-save').addEventListener('click', () => {
+    settings = { keywords: $('s-keywords').value, deal: $('s-deal').value, paymode: $('s-paymode').value, theme: $('s-theme').value };
+    store.set('settings', settings); applyTheme(); scoreAll(); $('settings').close(); render(); toast('Settings saved');
+  });
+  $('s-clear').addEventListener('click', () => { if (confirm(`Unhide all ${hidden.size} hidden jobs?`)) { hidden = new Set(); store.set('hidden', []); render(); toast('All hidden jobs are back'); } });
+
+  // ---------- Chrome extension sync ----------
+  // extension/bridge.js runs on this page and relays messages with window.postMessage.
+  function mergeEntries(list) {
+    let changed = false;
+    for (const e0 of list) {
+      if (!e0 || !e0.id) continue;
+      const e = Object.assign({}, e0);
+      if (e.id.startsWith('ext:') && e.url) {           // link extension-logged jobs to feed jobs
+        const j = byUrl.get(normUrl(e.url));
+        if (j) { e.merged_from = [...new Set([...(e.merged_from || []), e.id])]; Object.assign(e, snapshot(j)); }
+      }
+      const cur = tracker[e.id];
+      if (e.status === '__deleted') { if (cur && (cur.updated || '') <= (e.updated || '')) { delete tracker[e.id]; changed = true; } continue; }
+      if (!cur || (e.updated || '') > (cur.updated || '') || (e.merged_from && !cur.merged_from)) {
+        tracker[e.id] = Object.assign({}, cur || {}, e, { dates: Object.assign({}, cur && cur.dates, e.dates) });
+        changed = true;
+      }
+    }
+    return changed;
+  }
+  let extOn = false;
+  const target = location.origin === 'null' ? '*' : location.origin;
+  function pushToExtension(extra) { if (extOn) window.postMessage({ rm: 'page-apps', apps: Object.values(tracker).concat(extra || []) }, target); }
+  window.addEventListener('message', ev => {
+    if (ev.source !== window || !ev.data || ev.data.rm !== 'ext-apps') return;
+    extOn = true; $('sync').classList.add('on'); $('sync').title = 'Chrome extension connected. Applications sync both ways.';
+    if (mergeEntries(ev.data.apps || [])) { store.set('tracker', tracker); render(); }
+    pushToExtension();
+  });
+
+  // ---------- go ----------
+  applyTheme(); scoreAll();
+  const p = location.hash.slice(1);
+  if (['intern', 'newgrad', 'tracker'].includes(p)) state.page = p;
+  const newest = jobs.reduce((m, j) => Math.max(m, j.ts), 0);
+  $('meta').textContent = raw.generated ? `Data updated ${ago(Date.parse(raw.generated))}${newest ? ', newest posting ' + ago(newest) : ''}` : 'No data yet. Run: python -m radar all';
+  render();
+  window.postMessage({ rm: 'page-hello' }, target);
+})();
+</script>
+</body>
+</html>

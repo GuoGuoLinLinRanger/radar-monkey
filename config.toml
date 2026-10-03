@@ -1,0 +1,67 @@
+# Radar Monkey settings. Edit this, push, and the next scheduled run uses it.
+
+[keep]
+# Drop postings older than this many days (tracked jobs stay in your tracker anyway).
+max_age_days = 60
+# Keep closed postings for this many days so you can see "posting closed" on tracked jobs.
+closed_grace_days = 14
+
+# ---------- Sources ----------
+
+[sources.simplify]
+enabled = true
+# Public lists kept by SimplifyJobs on GitHub. Direct apply links, terms, sponsorship, degrees.
+intern_url  = "https://raw.githubusercontent.com/SimplifyJobs/Summer2027-Internships/dev/.github/scripts/listings.json"
+newgrad_url = "https://raw.githubusercontent.com/SimplifyJobs/New-Grad-Positions/dev/.github/scripts/listings.json"
+
+[sources.jobright]
+enabled = true
+# Public daily lists Jobright posts on GitHub (last 7 days of postings, with work model).
+repos = [
+  { repo = "jobright-ai/2026-Software-Engineer-Internship", kind = "intern",  category = "Software" },
+  { repo = "jobright-ai/2026-Software-Engineer-New-Grad",   kind = "newgrad", category = "Software" },
+  { repo = "jobright-ai/2026-Data-Analysis-New-Grad",       kind = "newgrad", category = "AI/ML/Data" },
+]
+
+# ---------- Extra detail (pay, full posting text) ----------
+# Uses the official public job-board APIs of Greenhouse, Lever and Ashby.
+[enrich]
+enabled = true
+max_per_run = 250
+
+# ---------- Watchlist: companies you want to catch the minute they post ----------
+# Polls the company's own job board every run. Find the board name in their careers URL:
+#   job-boards.greenhouse.io/<board>   jobs.lever.co/<board>   jobs.ashbyhq.com/<board>
+[watch]
+title_regex = "(?i)intern|co-?op|new ?grad|university|graduate|early career|entry|junior|apprentice"
+
+[[watch.boards]]
+ats = "greenhouse"
+board = "stripe"
+
+[[watch.boards]]
+ats = "greenhouse"
+board = "databricks"
+
+[[watch.boards]]
+ats = "ashby"
+board = "ramp"
+
+[[watch.boards]]
+ats = "lever"
+board = "palantir"
+
+# ---------- Alerts (Discord) ----------
+# Set a repo secret called RADAR_DISCORD_WEBHOOK to get pinged about NEW matches.
+# Every field is optional. Words match the title (case does not matter).
+[[alerts]]
+name = "SWE intern, US or Canada"
+kind = "intern"
+countries = ["US", "CA"]
+any_words = ["software", "swe", "developer", "backend", "full stack", "infrastructure"]
+none_words = ["senior", "phd", "sales"]
+hide_citizen_only = true
+
+[[alerts]]
+name = "Watchlist companies, any role"
+sources = ["watch"]

@@ -1,0 +1,11 @@
+:root { --bg:#f6f7f9; --surface:#fff; --fg:#16202c; --fg-2:#56657a; --line:#d9dfe7; --accent:#1f5fbf; --accent-fg:#fff; --good:#0f7b5f; --warn:#9a6100; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root { --bg:#0f141a; --surface:#161d25; --fg:#e6ebf1; --fg-2:#9aa7b8; --line:#2b3643; --accent:#6ea3ee; --accent-fg:#0f141a; --good:#4fc79f; --warn:#e0a84a; color-scheme: dark; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; }
+button, input, textarea, select { font: inherit; color: inherit; }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 7px 12px; border-radius: 6px; cursor: pointer; text-align: left; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.btn:disabled { opacity: .6; cursor: default; }
+.hint { color: var(--fg-2); font-size: 12px; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

@@ -1,0 +1,75 @@
+name: Update jobs
+
+on:
+  schedule:
+    - cron: "17 */3 * * *"   # every 3 hours
+  workflow_dispatch: {}        # "Run workflow" button
+  push:
+    branches: [main]
+    paths: ["radar/**", "dashboard/**", "config.toml", ".github/workflows/update.yml"]
+
+permissions:
+  contents: write   # to save job history on the `data` branch
+  pages: write
+  id-token: write
+
+concurrency:
+  group: update-jobs
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Job history (first-seen times, closed postings) lives on a separate `data` branch,
+      # force-pushed as a single commit so the repo never bloats.
+      - name: Load job history
+        run: |
+          git clone --depth 1 --branch data "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" state \
+            || mkdir -p state
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Collect postings
+        run: python -m radar update
+        env:
+          RADAR_DATA_DIR: state
+
+      - name: Send alerts
+        if: github.event_name != 'push'
+        run: python -m radar notify
+        env:
+          RADAR_DATA_DIR: state
+          RADAR_DISCORD_WEBHOOK: ${{ secrets.RADAR_DISCORD_WEBHOOK }}
+
+      - name: Build dashboard
+        run: python -m radar build
+        env:
+          RADAR_DATA_DIR: state
+
+      - name: Save job history
+        run: |
+          cd state
+          rm -rf .git
+          git init -q -b data
+          git add -A
+          git -c user.name="radar-bot" -c user.email="radar-bot@users.noreply.github.com" commit -qm "data $(date -u +%FT%TZ)"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
