@@ -1,0 +1,26 @@
+<!doctype html><html><body>
+<label for="fn">First Name *</label><input id="fn" required>
+<label for="ln">Last Name</label><input id="ln">
+<label for="pf">Preferred First Name</label><input id="pf">
+<label for="em">Email</label><input id="em" type="email">
+<div><label>Phone</label><input name="phone" data-automation-id="phone-number"></div>
+<label for="li">LinkedIn Profile</label><input id="li">
+<label for="sch">School</label><select id="sch"><option>Select...</option><option>University of Toronto</option><option>University of Waterloo</option></select>
+<label for="deg">Degree</label><select id="deg"><option></option><option>High School</option><option>Bachelor's Degree</option><option>Master's Degree</option></select>
+<fieldset><legend>Are you legally authorized to work in the United States?</legend>
+ <label><input type="radio" name="auth" value="1"> Yes</label><label><input type="radio" name="auth" value="0"> No</label></fieldset>
+<div class="q"><div class="question">Will you now or in the future require sponsorship for employment visa status?</div>
+ <label><input type="radio" name="sp" value="1">Yes</label><label><input type="radio" name="sp" value="0">No</label></div>
+<label for="gy">Expected graduation year</label><input id="gy">
+<label for="why">Why do you want to work at Acme?</label><textarea id="why" required></textarea>
+<label for="gender">Gender</label><select id="gender"><option>Select</option><option>Male</option><option>Female</option><option>Decline To Self Identify</option></select>
+<div><label id="hh">How did you hear about us?</label>
+ <button type="button" aria-haspopup="listbox" aria-labelledby="hh" id="hb">Select One</button>
+ <ul role="listbox" id="lb" hidden><li role="option">Job Board</li><li role="option">LinkedIn</li><li role="option">Referral</li></ul></div>
+<label for="res">Resume/CV</label><input type="file" id="res">
+<label for="mystery">Favourite colour *</label><input id="mystery" required>
+<script>
+document.getElementById('hb').onclick=()=>{document.getElementById('lb').hidden=false};
+document.querySelectorAll('#lb [role=option]').forEach(o=>o.onclick=()=>{document.getElementById('hb').textContent=o.textContent;document.getElementById('lb').hidden=true});
+</script>
+</body></html>

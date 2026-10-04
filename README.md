@@ -81,4 +81,4 @@ flagged, so this deliberately doesn't do it. You stay the one who reviews and su
   then call it in `radar/__main__.py`.
 - The tailoring skill: see `packages/README.md`.
 
-See `docs/IDEAS.md` for what to build next.
+Working on the code? Start with `docs/DEVELOPING.md`. Ideas for what to build next: `docs/IDEAS.md`.
