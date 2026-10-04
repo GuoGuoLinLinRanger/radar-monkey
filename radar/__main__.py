@@ -11,7 +11,7 @@ from pathlib import Path
 from . import build as B
 from . import notify as NT
 from . import store
-from .sources import boards, jobright, simplify
+from .sources import boards, interninsider, jobright, jobright_api, simplify
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -32,6 +32,10 @@ def update(cfg: dict) -> None:
         fresh += simplify.fetch(src.get("simplify", {}), age, now)
     if src.get("jobright", {}).get("enabled", True):
         fresh += jobright.fetch(src.get("jobright", {}), age, now)
+    if src.get("jobright_api", {}).get("enabled", False):
+        fresh += jobright_api.fetch(src.get("jobright_api", {}), age, now)
+    if src.get("interninsider", {}).get("enabled", True):
+        fresh += interninsider.fetch(src.get("interninsider", {}), age, now)
     if cfg.get("watch", {}).get("boards"):
         fresh += boards.fetch(cfg["watch"], age, now)
     if not fresh:

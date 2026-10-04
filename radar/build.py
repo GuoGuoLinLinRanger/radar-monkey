@@ -24,11 +24,11 @@ def build(out: str = "site") -> Path:
             j["description"] = j["description"][:SLIM_DESC]
         jobs.append(j)
     payload = json.dumps({"generated": db.get("generated", ""), "jobs": jobs}, separators=(",", ":"))
-    (out_dir / "jobs.js").write_text("window.RADAR_DATA=" + payload + ";\n")
-    html = (ROOT / "dashboard" / "index.html").read_text()
+    (out_dir / "jobs.js").write_text("window.RADAR_DATA=" + payload + ";\n", encoding="utf-8")
+    html = (ROOT / "dashboard" / "index.html").read_text(encoding="utf-8")
     stamp = (db.get("generated") or "0").replace(":", "").replace("+", "")
     html = html.replace('src="jobs.js"', f'src="jobs.js?v={stamp}"')
-    (out_dir / "index.html").write_text(html)
-    (out_dir / ".nojekyll").write_text("")
+    (out_dir / "index.html").write_text(html, encoding="utf-8")
+    (out_dir / ".nojekyll").write_text("", encoding="utf-8")
     print(f"  built {out_dir}/index.html with {len(jobs)} jobs ({len(payload)//1024} KB)")
     return out_dir

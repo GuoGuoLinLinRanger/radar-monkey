@@ -23,6 +23,23 @@ repos = [
   { repo = "jobright-ai/2026-Data-Analysis-New-Grad",       kind = "newgrad", category = "AI/ML/Data" },
 ]
 
+[sources.jobright_api]
+# Richer alternative to the GitHub mirror above: Jobright's own public minisite API
+# (intern-list.com / newgrad-jobs.com) returns a whole category in one request with
+# structured pay, visa flag and work model. Off by default; it overlaps the mirror
+# (same jobs, folded by the deduper), so enable this and set [sources.jobright] off
+# if you want the extra fields. Category ids: docs/jobright_categories.json.
+enabled = false
+countries = ["us", "ca"]
+kinds = ["intern", "newgrad"]
+categories = ["swe"]
+
+[sources.interninsider]
+# interninsider.me: a second list that the GitHub mirrors don't cover. Static site,
+# one request per posting (cached after the first run), SWE decided by title.
+enabled = true
+countries = ["US", "CA"]
+
 # ---------- Extra detail (pay, full posting text) ----------
 # Uses the official public job-board APIs of Greenhouse, Lever and Ashby.
 [enrich]
