@@ -19,6 +19,7 @@ import html
 import json
 import re
 
+from .. import normalize as N
 from ..swe import is_swe
 from ..util import get
 from . import new_job
@@ -75,6 +76,14 @@ def _list_open_jobs() -> list[tuple[str, str]]:
     return rows
 
 
+def _safe_parse(url: str, lastmod: str) -> dict | None:
+    """One malformed page must never abort the whole batch."""
+    try:
+        return _parse_job(url, lastmod)
+    except Exception:
+        return None
+
+
 def _parse_job(url: str, lastmod: str) -> dict | None:
     page = get(url)
     if not page:
@@ -87,20 +96,35 @@ def _parse_job(url: str, lastmod: str) -> dict | None:
     badges = [b for b in badges if b]
     org = ld.get("hiringOrganization") or {}
     locs = ld.get("jobLocation") or []
-    if isinstance(locs, dict):
+    if isinstance(locs, (dict, str)):
         locs = [locs]
     loc_strs, countries = [], set()
     for l in locs:
-        a = l.get("address") or {}
+        if not isinstance(l, dict):
+            if isinstance(l, str) and l.strip():
+                loc_strs.append(l.strip())
+            continue
+        a = l.get("address")
+        if isinstance(a, str):
+            if a.strip():
+                loc_strs.append(a.strip())
+            continue
+        a = a or {}
         countries.add(COUNTRY.get(a.get("addressCountry") or "", a.get("addressCountry") or ""))
         s = ", ".join(x for x in [a.get("addressLocality"), a.get("addressRegion")] if x)
         if s:
             loc_strs.append(s)
     remote = ld.get("jobLocationType") == "TELECOMMUTE" or "Remote-friendly" in badges
     if remote:
-        for req in (ld.get("applicantLocationRequirements") or []):
-            countries.add(COUNTRY.get(req.get("name") or "", req.get("name") or ""))
+        reqs = ld.get("applicantLocationRequirements") or []
+        if isinstance(reqs, dict):
+            reqs = [reqs]
+        for req in reqs:
+            name = req.get("name") if isinstance(req, dict) else req
+            countries.add(COUNTRY.get(name or "", name or ""))
     country = next((c for c in ("US", "CA") if c in countries), "")
+    if not country and loc_strs:  # structured country missing (e.g. bare-string location): infer from text
+        country = next((c for c in ("US", "CA") if c in N.countries_of(loc_strs)), "")
     desc = html.unescape(TAG_RE.sub(" ", ld.get("description") or ""))
     posted = ld.get("datePosted") or lastmod
     try:
@@ -140,7 +164,7 @@ def fetch(cfg: dict, max_age_days: int, now: float) -> list[dict]:
     failed = 0
     if todo:
         with cf.ThreadPoolExecutor(workers) as ex:
-            for rec in ex.map(lambda j: _parse_job(*j), todo):
+            for rec in ex.map(lambda j: _safe_parse(*j), todo):
                 if rec is None:
                     failed += 1
                 else:
