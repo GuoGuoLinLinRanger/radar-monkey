@@ -25,10 +25,21 @@
     if (changed) await chrome.storage.local.set({ apps });
   }
 
+  async function arm(host) {
+    if (!host) return;
+    const { armedHosts = {} } = await chrome.storage.local.get('armedHosts');
+    armedHosts[host] = Date.now();
+    // Keep the list small: drop arms older than 6 hours.
+    const cutoff = Date.now() - 6 * 3600e3;
+    for (const h of Object.keys(armedHosts)) if (armedHosts[h] < cutoff) delete armedHosts[h];
+    await chrome.storage.local.set({ armedHosts });
+  }
+
   window.addEventListener('message', (ev) => {
     if (ev.source !== window || !ev.data) return;
     if (ev.data.rm === 'page-hello') send();
     if (ev.data.rm === 'page-apps') receive(ev.data.apps || []);
+    if (ev.data.rm === 'page-arm') arm(ev.data.host);
   });
   chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.apps) send(); });
   chrome.storage.local.set({ dashboardSeen: location.href.split('#')[0] });

@@ -497,7 +497,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
       const tracked = t && t.status !== 'saved';
       html.push(`<tr class="row${j.active ? '' : ' closed'}" data-id="${j.id}" aria-expanded="${open}">
         <td class="star"><button class="${t && t.status === 'saved' ? 'on' : ''}" data-act="star" aria-label="${t && t.status === 'saved' ? 'Unstar' : 'Star'}" title="${t && t.status === 'saved' ? 'Unstar' : 'Save for later'}">${t && t.status === 'saved' ? '★' : '☆'}</button><button class="ap${t && t.dates && t.dates.applied ? ' done' : ''}" data-act="applied" data-id="${j.id}" aria-label="${t && t.dates && t.dates.applied ? 'Applied' : 'Mark as applied'}" title="${t && t.dates && t.dates.applied ? 'Applied' : 'Mark as applied'}">✓</button></td>
-        <td class="title"><a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a> <span class="co">· ${esc(j.company)}</span>${tracked ? statusChip(t.status) : ''}${j.seen > seenTs ? ' <span class="chip new">new</span>' : ''}${j.active ? '' : ' <span class="chip bad">closed</span>'}${sponsChip(j.sponsorship)}${j.deal && j.deal.length ? ` <span class="chip warn">mentions ${esc(j.deal.join(', '))}</span>` : ''}</td>
+        <td class="title"><a href="${esc(j.url)}" target="_blank" rel="noopener" data-arm>${esc(j.title)}</a> <span class="co">· ${esc(j.company)}</span>${tracked ? statusChip(t.status) : ''}${j.seen > seenTs ? ' <span class="chip new">new</span>' : ''}${j.active ? '' : ' <span class="chip bad">closed</span>'}${sponsChip(j.sponsorship)}${j.deal && j.deal.length ? ` <span class="chip warn">mentions ${esc(j.deal.join(', '))}</span>` : ''}</td>
         <td class="loc"><span title="${esc(j.locations.join('\n'))}">${esc(j.locations[0] || '—')}${j.locations.length > 1 ? ` +${j.locations.length - 1}` : ''}</span></td>
         <td>${j.work_model ? `<span class="chip${j.work_model === 'Remote' ? ' remote' : ''}">${esc(j.work_model)}</span>` : ''}</td>
         <td class="pay">${payCell(j)}</td>
@@ -531,7 +531,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
       <div>
         <dt>Details</dt><dd>${esc(facts)}</dd>
         <div class="actions">
-          <a class="btn primary" href="${esc(j.url)}" target="_blank" rel="noopener">Open application</a>
+          <a class="btn primary" href="${esc(j.url)}" target="_blank" rel="noopener" data-arm>Open application</a>
           <button class="btn" data-act="applied" data-id="${j.id}">${t && t.status === 'applied' ? 'Applied ✓' : 'I applied'}</button>
           <select data-act="status" data-id="${j.id}" aria-label="Status"><option value="">Not tracked</option>${sel}</select>
           <button class="btn" data-act="tailor" data-id="${j.id}">Copy for resume tailoring</button>
@@ -771,6 +771,12 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
   let extOn = false;
   const target = (location.protocol === 'file:' || location.origin === 'null') ? '*' : location.origin;
   function pushToExtension(extra) { if (extOn) window.postMessage({ rm: 'page-apps', apps: Object.values(tracker).concat(extra || []) }, target); }
+  // Opening an application from the dashboard "arms" that site so the extension
+  // auto-fills it (and its later steps) without you clicking the extension.
+  document.addEventListener('click', ev => {
+    const a = ev.target.closest('a[data-arm]');
+    if (a && a.href) { try { window.postMessage({ rm: 'page-arm', host: new URL(a.href).host }, target); } catch (e) {} }
+  });
   window.addEventListener('message', ev => {
     if (ev.source !== window || !ev.data || ev.data.rm !== 'ext-apps') return;
     extOn = true; $('sync').classList.add('on'); $('sync').title = 'Chrome extension connected. Applications sync both ways.';
