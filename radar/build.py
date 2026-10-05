@@ -25,6 +25,8 @@ def build(out: str = "site") -> Path:
         jobs.append(j)
     payload = json.dumps({"generated": db.get("generated", ""), "jobs": jobs}, separators=(",", ":"))
     (out_dir / "jobs.js").write_text("window.RADAR_DATA=" + payload + ";\n", encoding="utf-8")
+    # Tiny file the dashboard's "Check for new jobs" button polls without downloading all of jobs.js.
+    (out_dir / "meta.json").write_text(json.dumps({"generated": db.get("generated", ""), "count": len(jobs)}), encoding="utf-8")
     html = (ROOT / "dashboard" / "index.html").read_text(encoding="utf-8")
     stamp = (db.get("generated") or "0").replace(":", "").replace("+", "")
     html = html.replace('src="jobs.js"', f'src="jobs.js?v={stamp}"')

@@ -93,9 +93,12 @@ td.loc { max-width: 220px; color: var(--fg-2); }
 td.loc span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 td.pay, td.when, td.fit, td.mono { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
 td.pay .alt { display: block; color: var(--fg-2); font-size: 11px; }
-td.star { width: 34px; text-align: center; padding-right: 0; }
+td.star { width: 58px; text-align: center; padding-right: 0; white-space: nowrap; }
 .star button { border: 0; background: none; cursor: pointer; font-size: 17px; color: var(--fg-2); padding: 0 2px; line-height: 1; }
 .star button.on { color: #d99a00; }
+.star button.ap { font-size: 15px; }
+.star button.ap:hover { color: var(--s-applied); }
+.star button.ap.done { color: var(--s-applied); }
 .chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 10px; background: var(--surface-2); color: var(--fg-2); white-space: nowrap; margin: 1px 0; }
 .chip.new { background: var(--new-soft); color: var(--new); font-weight: 600; }
 .chip.remote { background: var(--accent-soft); color: var(--accent); }
@@ -173,6 +176,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
       <select id="presets" aria-label="Saved filters"></select>
       <button class="btn" id="save-preset">Save filters</button>
       <button class="btn" id="reset">Reset</button>
+      <button class="btn" id="refresh" title="Pull the latest postings from the server">Check for new jobs</button>
     </div>
 
     <div class="filters" id="filters" hidden>
@@ -492,7 +496,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
       const open = state.open === j.id;
       const tracked = t && t.status !== 'saved';
       html.push(`<tr class="row${j.active ? '' : ' closed'}" data-id="${j.id}" aria-expanded="${open}">
-        <td class="star">${tracked ? '' : `<button class="${t ? 'on' : ''}" data-act="star" aria-label="${t ? 'Unstar' : 'Star'}">${t ? '★' : '☆'}</button>`}</td>
+        <td class="star"><button class="${t && t.status === 'saved' ? 'on' : ''}" data-act="star" aria-label="${t && t.status === 'saved' ? 'Unstar' : 'Star'}" title="${t && t.status === 'saved' ? 'Unstar' : 'Save for later'}">${t && t.status === 'saved' ? '★' : '☆'}</button><button class="ap${t && t.dates && t.dates.applied ? ' done' : ''}" data-act="applied" data-id="${j.id}" aria-label="${t && t.dates && t.dates.applied ? 'Applied' : 'Mark as applied'}" title="${t && t.dates && t.dates.applied ? 'Applied' : 'Mark as applied'}">✓</button></td>
         <td class="title"><a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a> <span class="co">· ${esc(j.company)}</span>${tracked ? statusChip(t.status) : ''}${j.seen > seenTs ? ' <span class="chip new">new</span>' : ''}${j.active ? '' : ' <span class="chip bad">closed</span>'}${sponsChip(j.sponsorship)}${j.deal && j.deal.length ? ` <span class="chip warn">mentions ${esc(j.deal.join(', '))}</span>` : ''}</td>
         <td class="loc"><span title="${esc(j.locations.join('\n'))}">${esc(j.locations[0] || '—')}${j.locations.length > 1 ? ` +${j.locations.length - 1}` : ''}</span></td>
         <td>${j.work_model ? `<span class="chip${j.work_model === 'Remote' ? ' remote' : ''}">${esc(j.work_model)}</span>` : ''}</td>
@@ -612,6 +616,26 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
   });
   let bt; $('blocked').addEventListener('input', e => { clearTimeout(bt); bt = setTimeout(() => upd(f => f.blocked = e.target.value), 300); });
   $('reset').addEventListener('click', () => { state.f = clone(DEFAULT_F); state.shown = PAGE_SIZE; $('q').value = ''; render(); });
+  $('refresh').addEventListener('click', async () => {
+    const btn = $('refresh'), label = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Checking…';
+    try {
+      const r = await fetch('meta.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) throw new Error('no meta');
+      const m = await r.json();
+      if (m.generated && m.generated !== raw.generated) {
+        const added = (m.count || 0) - jobs.length;
+        toast(added > 0 ? `${added} new posting${added === 1 ? '' : 's'}. Loading the latest…` : 'Fresh data available. Loading…');
+        setTimeout(() => location.reload(), 900);
+      } else {
+        toast('Up to date. Last collected ' + (ago(Date.parse(raw.generated)) || 'just now') + '.');
+        btn.disabled = false; btn.textContent = label;
+      }
+    } catch (e) {
+      toast('Could not check right now — try again in a moment.');
+      btn.disabled = false; btn.textContent = label;
+    }
+  });
   $('more').addEventListener('click', () => { state.shown += PAGE_SIZE; render(); });
   $('save-preset').addEventListener('click', () => {
     const name = (prompt('Name these filters, e.g. "SWE Canada, paid"') || '').trim();
@@ -635,7 +659,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
       const id = act.dataset.id || act.closest('tr').dataset.id;
       const a = act.dataset.act;
       if (a === 'star') { setStatus(id, tracker[id] ? null : 'saved'); render(); }
-      else if (a === 'applied') { setStatus(id, 'applied'); render(); toast('Marked applied. Follow-up reminder set for 2 weeks out.'); }
+      else if (a === 'applied') { const cur = tracker[id]; if (cur && cur.dates && cur.dates.applied) { toast('Already marked applied — use the status dropdown for later stages.'); } else { setStatus(id, 'applied'); toast('Marked applied. Follow-up reminder set for 2 weeks out.'); } render(); }
       else if (a === 'hide') { setHidden(id, !hidden.has(id)); state.open = null; render(); toast(hidden.has(id) ? 'Hidden. Turn on "Show jobs I hid" to see it again.' : 'Unhidden'); }
       else if (a === 'tailor') { navigator.clipboard.writeText(tailorPacket(byId.get(id))).then(() => toast('Copied. Paste it into Claude with your resume.'), () => toast('Could not copy. Your browser blocked the clipboard.')); }
       return;
