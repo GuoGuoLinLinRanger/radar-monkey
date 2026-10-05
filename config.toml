@@ -19,6 +19,7 @@ enabled = true
 # Public daily lists Jobright posts on GitHub (last 7 days of postings, with work model).
 repos = [
   { repo = "jobright-ai/2026-Software-Engineer-Internship", kind = "intern",  category = "Software" },
+  { repo = "jobright-ai/2026-Data-Analysis-Internship",     kind = "intern",  category = "AI/ML/Data" },
   { repo = "jobright-ai/2026-Software-Engineer-New-Grad",   kind = "newgrad", category = "Software" },
   { repo = "jobright-ai/2026-Data-Analysis-New-Grad",       kind = "newgrad", category = "AI/ML/Data" },
 ]
@@ -72,11 +73,13 @@ board = "palantir"
 # Set a repo secret called RADAR_DISCORD_WEBHOOK to get pinged about NEW matches.
 # Every field is optional. Words match the title (case does not matter).
 [[alerts]]
-name = "SWE intern, US or Canada"
+name = "SWE / AI-ML intern, US or Canada"
 kind = "intern"
 countries = ["US", "CA"]
-any_words = ["software", "swe", "developer", "backend", "full stack", "infrastructure"]
-none_words = ["senior", "phd", "sales"]
+any_words = ["software", "swe", "developer", "backend", "frontend", "full stack", "infrastructure",
+             "machine learning", "ml ", "ai ", "artificial intelligence", "deep learning",
+             "data scien", "data engineer", "nlp", "computer vision", "research"]
+none_words = ["senior", "phd", "sales", "co-op", "coop", "master"]
 hide_citizen_only = true
 
 [[alerts]]

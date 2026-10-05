@@ -300,8 +300,8 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     set(k, v) { try { localStorage.setItem('rm2-' + k, JSON.stringify(v)); } catch (e) {} },
   };
   const DEFAULT_F = {
-    q: '', country: ['US', 'CA'], model: [], posted: 0, sort: 'newest', terms: [], cats: [], ats: [], src: [],
-    spons: 'any', hideFlags: [], minpay: 0, haspay: false, onlynew: false, onlysaved: false,
+    q: '', country: ['US', 'CA'], model: [], posted: 0, sort: 'newest', terms: [], cats: ['Software', 'AI/ML/Data'], ats: [], src: [],
+    spons: 'any', hideFlags: ['senior', 'phd', 'masters', 'coop'], minpay: 0, haspay: false, onlynew: false, onlysaved: false,
     hideapplied: true, showhidden: false, showclosed: false, blocked: '', minfit: 0,
   };
   const clone = (o) => JSON.parse(JSON.stringify(o));
