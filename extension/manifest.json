@@ -18,7 +18,8 @@
     "https://*.oraclecloud.com/*",
     "https://*.successfactors.com/*",
     "https://*.eightfold.ai/*",
-    "https://*.rippling.com/*"
+    "https://*.rippling.com/*",
+    "https://api.anthropic.com/*"
   ],
   "background": { "service_worker": "background.js" },
   "action": { "default_popup": "popup.html", "default_title": "Radar Monkey" },
@@ -34,6 +35,27 @@
     {
       "matches": ["http://localhost/*", "http://127.0.0.1/*", "https://*.github.io/*", "file:///*"],
       "js": ["bridge.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://*.greenhouse.io/*",
+        "https://*.lever.co/*",
+        "https://*.ashbyhq.com/*",
+        "https://*.myworkdayjobs.com/*",
+        "https://*.myworkdaysite.com/*",
+        "https://*.icims.com/*",
+        "https://*.smartrecruiters.com/*",
+        "https://*.jobvite.com/*",
+        "https://*.workable.com/*",
+        "https://*.bamboohr.com/*",
+        "https://*.oraclecloud.com/*",
+        "https://*.successfactors.com/*",
+        "https://*.eightfold.ai/*",
+        "https://*.rippling.com/*"
+      ],
+      "js": ["fields.js", "fill.js", "auto.js"],
+      "all_frames": true,
       "run_at": "document_idle"
     }
   ]

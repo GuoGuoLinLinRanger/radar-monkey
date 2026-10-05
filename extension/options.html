@@ -28,8 +28,16 @@ input[type=text], textarea { width: 100%; padding: 6px 8px; border: 1px solid va
 
   <h2>Your answers to common questions</h2>
   <p class="hint">If a question contains the words on the left, the answer on the right is used. Wrap in slashes for a pattern, e.g. <code>/why.*(us|company)/</code>. These win over the profile above.</p>
+  <p class="hint">Put <code>[[generate]]</code> as the answer and the extension will write a tailored answer from the company, the role, and the posting on the page (needs an API key below). Good for "why this company" and "tell us about a project".</p>
   <div id="answers"></div>
   <button class="btn" id="add-answer">Add an answer</button>
+
+  <h2>Generated answers</h2>
+  <p class="hint">Only used by <code>[[generate]]</code> answers above. Your key is stored only in this browser and sent only to Anthropic when you click Fill. Each generated answer costs about 1–2 cents. Generated text is left highlighted for you to review before submitting.</p>
+  <label>Anthropic API key <span class="hint">From console.anthropic.com. Leave blank to turn generation off.</span>
+    <input type="text" id="apiKey" placeholder="sk-ant-..."></label>
+  <label style="margin-top:10px">About you, for generated answers <span class="hint">A few lines on your interests, goals, and what you want in a role. Used to make the answers sound like you.</span>
+    <textarea id="genContext" rows="4" placeholder="e.g. Final-year CS student focused on backend and ML infra. Enjoy systems work and shipping real products. Looking for a team that mentors interns and ships fast."></textarea></label>
 
   <h2>Answers remembered from forms</h2>
   <p class="hint">Saved with "Remember my answers on this page". Delete any that are company-specific.</p>

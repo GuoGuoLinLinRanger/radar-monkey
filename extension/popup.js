@@ -25,6 +25,13 @@ async function log(status) {
 }
 $('applied').addEventListener('click', () => log('applied'));
 $('save').addEventListener('click', () => log('saved'));
+chrome.storage.local.get('autofill').then(({ autofill }) => { $('autofill').checked = !!autofill; });
+$('autofill').addEventListener('change', async (e) => {
+  await chrome.storage.local.set({ autofill: e.target.checked });
+  out(e.target.checked
+    ? 'Auto-fill on. It fills fields as each page loads — review and click next/submit yourself.'
+    : 'Auto-fill off.');
+});
 document.addEventListener('click', (e) => { if (e.target.id === 'settings' || e.target.id === 'go') { e.preventDefault(); chrome.runtime.openOptionsPage(); } });
 chrome.storage.local.get(['dashboardUrl', 'dashboardSeen']).then(({ dashboardUrl, dashboardSeen }) => {
   const url = dashboardUrl || dashboardSeen;

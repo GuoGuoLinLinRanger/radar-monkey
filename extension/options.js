@@ -34,7 +34,7 @@ function renderLearned(learned) {
 }
 
 async function load() {
-  const s = await chrome.storage.local.get(['profile', 'answers', 'learned', 'resume', 'overwrite', 'dashboardUrl', 'dashboardSeen']);
+  const s = await chrome.storage.local.get(['profile', 'answers', 'learned', 'resume', 'overwrite', 'dashboardUrl', 'dashboardSeen', 'apiKey', 'genContext']);
   renderProfile(s.profile || {});
   $('answers').innerHTML = '';
   (s.answers && s.answers.length ? s.answers : STARTER_ANSWERS).forEach(answerRow);
@@ -42,13 +42,15 @@ async function load() {
   $('resume-name').textContent = s.resume ? `Current: ${s.resume.name}` : 'No resume yet';
   $('overwrite').checked = !!s.overwrite;
   $('dashboardUrl').value = s.dashboardUrl || s.dashboardSeen || '';
+  $('apiKey').value = s.apiKey || '';
+  $('genContext').value = s.genContext || '';
 }
 
 async function save() {
   const profile = {};
   document.querySelectorAll('[data-k]').forEach(i => profile[i.dataset.k] = i.value.trim());
   const answers = [...document.querySelectorAll('.qa')].map(r => ({ q: r.querySelector('input').value.trim(), a: r.querySelector('textarea').value })).filter(x => x.q && x.a);
-  await chrome.storage.local.set({ profile, answers, overwrite: $('overwrite').checked, dashboardUrl: $('dashboardUrl').value.trim() });
+  await chrome.storage.local.set({ profile, answers, overwrite: $('overwrite').checked, dashboardUrl: $('dashboardUrl').value.trim(), apiKey: $('apiKey').value.trim(), genContext: $('genContext').value.trim() });
   $('saved').hidden = false; setTimeout(() => $('saved').hidden = true, 1600);
 }
 
