@@ -262,9 +262,12 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
 
 <dialog id="settings">
   <h2>Settings</h2>
-  <label for="s-keywords">Your skills and interests (for the fit score)</label>
-  <textarea id="s-keywords" rows="3" placeholder="python, react, distributed systems, kubernetes, ml"></textarea>
-  <div class="hint">Comma separated. Fit is the share of these that show up in the title and posting text.</div>
+  <label for="s-resume">Paste your resume (for the fit score)</label>
+  <textarea id="s-resume" rows="6" placeholder="Paste your full resume text here. Fit = how many of the skills a posting asks for that your resume already covers."></textarea>
+  <div class="hint">Stays in this browser only. Fit scores each job by the share of the skills it names that your resume mentions.</div>
+  <label for="s-keywords">Extra skills and interests (optional)</label>
+  <textarea id="s-keywords" rows="2" placeholder="python, react, distributed systems, kubernetes, ml"></textarea>
+  <div class="hint">Comma separated. Added to your resume text for fit, and used alone if you leave the resume blank.</div>
   <label for="s-deal">Warn me when a posting mentions</label>
   <textarea id="s-deal" rows="2" placeholder="security clearance, us citizen, phd required"></textarea>
   <label for="s-paymode">Show pay as</label>
@@ -309,11 +312,15 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     hideapplied: true, showhidden: false, showclosed: false, blocked: '', minfit: 0,
   };
   const clone = (o) => JSON.parse(JSON.stringify(o));
-  const state = { page: 'intern', f: Object.assign(clone(DEFAULT_F), store.get('filters', {})), open: null, shown: PAGE_SIZE, tstatus: '', tq: '' };
+  // Bump when DEFAULT_F changes so the new default scope re-applies over stale saved filters.
+  const FILTERS_V = 3;
+  let storedF = store.get('filters', {});
+  if (store.get('filtersV', 0) < FILTERS_V) { storedF = {}; store.set('filtersV', FILTERS_V); }
+  const state = { page: 'intern', f: Object.assign(clone(DEFAULT_F), storedF), open: null, shown: PAGE_SIZE, tstatus: '', tq: '' };
   let tracker = store.get('tracker', {});
   let hidden = new Set(store.get('hidden', []));
   let presets = store.get('presets', {});
-  let settings = Object.assign({ keywords: '', deal: '', paymode: 'auto', theme: '' }, store.get('settings', {}));
+  let settings = Object.assign({ keywords: '', resume: '', deal: '', paymode: 'auto', theme: '' }, store.get('settings', {}));
 
   // ---------- data ----------
   const raw = window.RADAR_DATA || { generated: '', jobs: [] };
@@ -335,14 +342,37 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
   let seenAt = store.get('seenAt', null);
   if (seenAt == null) { seenAt = raw.generated || nowIso(); store.set('seenAt', seenAt); }
 
+  // Known tech skills we look for in both the posting and your resume. A posting's
+  // "fit" is the share of the skills it names that your resume also mentions.
+  const SKILLS = ['python','java','javascript','typescript','c++','c#','golang','go','rust','ruby','php','scala','kotlin','swift','r','matlab','sql','nosql','bash','perl',
+    'react','angular','vue','svelte','next.js','node.js','node','express','django','flask','fastapi','spring','rails','.net','graphql','rest','redux','tailwind','html','css',
+    'aws','azure','gcp','google cloud','docker','kubernetes','terraform','ansible','jenkins','ci/cd','linux','git','github','gitlab','microservices','serverless','lambda',
+    'postgres','postgresql','mysql','mongodb','redis','elasticsearch','kafka','rabbitmq','spark','hadoop','snowflake','databricks','airflow','dbt','etl',
+    'machine learning','deep learning','pytorch','tensorflow','keras','scikit-learn','pandas','numpy','nlp','computer vision','llm','transformers','hugging face','opencv',
+    'data analysis','data engineering','data science','statistics','a/b testing','tableau','power bi','excel',
+    'distributed systems','algorithms','data structures','operating systems','networking','databases','api','backend','frontend','full stack','full-stack','embedded','firmware','fpga','verilog','rtos','android','ios','react native','flutter','unity','agile','scrum'];
+  const esc_re = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // Word-boundary-ish match so "go" doesn't hit "good" and "r" doesn't hit everything.
+  const hasSkill = (text, s) => new RegExp('(^|[^a-z0-9+#.])' + esc_re(s) + '([^a-z0-9+#.]|$)', 'i').test(text);
   function scoreAll() {
-    const kws = settings.keywords.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    const extra = settings.keywords.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
     const deal = settings.deal.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    const resumeText = ((settings.resume || '') + ' ' + extra.join(' ')).toLowerCase();
+    const haveResume = !!resumeText.trim();
+    // The skills your resume covers, plus any extra keywords you listed.
+    const mine = new Set(haveResume ? SKILLS.filter(s => hasSkill(resumeText, s)).concat(extra) : []);
     for (const j of jobs) {
-      j.fit = kws.length ? Math.round(100 * kws.filter(k => j.text.includes(k)).length / kws.length) : null;
-      j.deal = deal.filter(d => j.text.includes(d));
+      if (!haveResume) { j.fit = null; j.fitHits = []; j.fitMiss = []; continue; }
+      const asked = SKILLS.filter(s => hasSkill(j.text, s)).concat(extra.filter(k => j.text.includes(k)));
+      const uniq = [...new Set(asked)];
+      if (!uniq.length) { j.fit = null; j.fitHits = []; j.fitMiss = []; continue; }
+      const hits = uniq.filter(s => mine.has(s));
+      j.fit = Math.round(100 * hits.length / uniq.length);
+      j.fitHits = hits;
+      j.fitMiss = uniq.filter(s => !mine.has(s));
     }
-    document.querySelectorAll('.fitcol').forEach(el => el.hidden = !kws.length);
+    for (const j of jobs) j.deal = deal.filter(d => j.text.includes(d));
+    document.querySelectorAll('.fitcol').forEach(el => el.hidden = !haveResume);
   }
 
   // ---------- formatting ----------
@@ -489,7 +519,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     const fresh = rows.filter(j => j.seen > seenTs).length;
     $('summary').innerHTML = `<span><b>${rows.length.toLocaleString()}</b> postings</span><span><b>${rows.filter(j => j.hasPay).length.toLocaleString()}</b> list pay</span><span><b>${rows.filter(j => Date.now() - j.ts < DAY).length}</b> posted in the last 24h</span><span><b>${fresh}</b> new since you last looked</span>${fresh ? '<button class="btn" id="markseen">Mark all seen</button>' : ''}`;
     $('empty').hidden = rows.length > 0;
-    const showFit = !!settings.keywords.trim();
+    const showFit = !!(settings.resume || '').trim() || !!settings.keywords.trim();
     const html = [];
     for (const j of rows.slice(0, state.shown)) {
       const t = tracker[j.id];
@@ -526,8 +556,12 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     ].filter(Boolean).join('\n');
     const body = j.qualifications || j.description || '';
     const sel = STATUSES.map(([v, l]) => `<option value="${v}"${t && t.status === v ? ' selected' : ''}>${l}</option>`).join('');
+    const fitBlock = j.fit == null ? '' : `<dt>Resume fit: ${j.fit}%</dt><dd>${
+      (j.fitHits && j.fitHits.length ? `<span class="ok">You have:</span> ${esc(j.fitHits.join(', '))}` : '')}${
+      (j.fitMiss && j.fitMiss.length ? `${j.fitHits && j.fitHits.length ? '<br>' : ''}<span class="none">Not on your resume:</span> ${esc(j.fitMiss.join(', '))}` : '')
+      || '<span class="none">No known skills named in this posting.</span>'}</dd>`;
     return `<tr class="detail"><td colspan="8"><div class="detail"><div class="grid">
-      <div><dt>${j.qualifications ? 'What they ask for' : 'Posting'}</dt><dd>${body ? esc(body) : '<span class="none">No posting text on file yet. Open the link to read it.</span>'}</dd></div>
+      <div><dt>${j.qualifications ? 'What they ask for' : 'Posting'}</dt><dd>${body ? esc(body) : '<span class="none">No posting text on file yet. Open the link to read it.</span>'}</dd>${fitBlock}</div>
       <div>
         <dt>Details</dt><dd>${esc(facts)}</dd>
         <div class="actions">
@@ -738,12 +772,12 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
   // ---------- settings ----------
   function applyTheme() { if (settings.theme) document.documentElement.dataset.theme = settings.theme; else delete document.documentElement.dataset.theme; }
   $('open-settings').addEventListener('click', () => {
-    $('s-keywords').value = settings.keywords; $('s-deal').value = settings.deal; $('s-paymode').value = settings.paymode; $('s-theme').value = settings.theme;
+    $('s-resume').value = settings.resume; $('s-keywords').value = settings.keywords; $('s-deal').value = settings.deal; $('s-paymode').value = settings.paymode; $('s-theme').value = settings.theme;
     $('settings').showModal();
   });
   $('s-cancel').addEventListener('click', () => $('settings').close());
   $('s-save').addEventListener('click', () => {
-    settings = { keywords: $('s-keywords').value, deal: $('s-deal').value, paymode: $('s-paymode').value, theme: $('s-theme').value };
+    settings = { keywords: $('s-keywords').value, resume: $('s-resume').value, deal: $('s-deal').value, paymode: $('s-paymode').value, theme: $('s-theme').value };
     store.set('settings', settings); applyTheme(); scoreAll(); $('settings').close(); render(); toast('Settings saved');
   });
   $('s-clear').addEventListener('click', () => { if (confirm(`Unhide all ${hidden.size} hidden jobs?`)) { hidden = new Set(); store.set('hidden', []); render(); toast('All hidden jobs are back'); } });
