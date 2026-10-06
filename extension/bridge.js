@@ -9,6 +9,14 @@
     window.postMessage({ rm: 'ext-apps', apps: Object.values(apps) }, target);
   }
 
+  // Jobs you captured on WaterlooWorks (extension/ww.js) get pushed to the dashboard,
+  // which merges them into its feed. One-way: the dashboard doesn't write these back.
+  async function sendJobs() {
+    const { wwJobs = {} } = await chrome.storage.local.get('wwJobs');
+    const list = Object.values(wwJobs);
+    if (list.length) window.postMessage({ rm: 'ext-jobs', jobs: list }, target);
+  }
+
   async function receive(list) {
     const { apps = {} } = await chrome.storage.local.get('apps');
     let changed = false;
@@ -37,11 +45,16 @@
 
   window.addEventListener('message', (ev) => {
     if (ev.source !== window || !ev.data) return;
-    if (ev.data.rm === 'page-hello') send();
+    if (ev.data.rm === 'page-hello') { send(); sendJobs(); }
     if (ev.data.rm === 'page-apps') receive(ev.data.apps || []);
     if (ev.data.rm === 'page-arm') arm(ev.data.host);
   });
-  chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.apps) send(); });
+  chrome.storage.onChanged.addListener((ch, area) => {
+    if (area !== 'local') return;
+    if (ch.apps) send();
+    if (ch.wwJobs) sendJobs();
+  });
   chrome.storage.local.set({ dashboardSeen: location.href.split('#')[0] });
   send();
+  sendJobs();
 })();

@@ -19,6 +19,7 @@
     "https://*.successfactors.com/*",
     "https://*.eightfold.ai/*",
     "https://*.rippling.com/*",
+    "https://waterlooworks.uwaterloo.ca/*",
     "https://api.anthropic.com/*"
   ],
   "background": { "service_worker": "background.js" },
@@ -56,6 +57,11 @@
       ],
       "js": ["fields.js", "fill.js", "auto.js"],
       "all_frames": true,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://waterlooworks.uwaterloo.ca/*"],
+      "js": ["ww.js"],
       "run_at": "document_idle"
     }
   ]
