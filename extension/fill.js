@@ -130,6 +130,14 @@
     for (const o of options) { const v = score(textFn(o), want); if (v > s) { s = v; top = o; } }
     return s >= 50 ? top : null;
   }
+  // An answer can list fallbacks with "|", e.g. "Asian | Chinese". Try each in order
+  // and take the first that matches an option, so forms that offer only the specific
+  // wording ("Chinese") and forms that offer only the general one ("Asian") both fill.
+  const alts = (v) => String(v || '').split('|').map(s => s.trim()).filter(Boolean);
+  function bestAny(options, wants, textFn) {
+    for (const w of wants) { const hit = best(options, w, textFn); if (hit) return hit; }
+    return null;
+  }
 
   // ---------- writing to the page ----------
   function setValue(el, v) {
@@ -148,11 +156,12 @@
     el.click();
   }
   async function pickFromListbox(want) {
+    const wants = Array.isArray(want) ? want : alts(want);
     for (let i = 0; i < 10; i++) {
       await sleep(120);
       const opts = [...document.querySelectorAll('[role="option"], [data-automation-id="promptOption"]')].filter(visible);
       if (opts.length) {
-        const hit = best(opts, want, textOf);
+        const hit = bestAny(opts, wants, textOf);
         if (hit) { clickLike(hit); await sleep(200); return true; }
         return false;
       }
@@ -208,7 +217,7 @@
         const q = questionFor(el);
         const r = resolve(q + ' ' + hints(el), el);
         if (!r || !r.value) { if (isRequired(el, q)) report.needs.push(q.slice(0, 80)); continue; }
-        const hit = best(group, r.value, labelFor);
+        const hit = bestAny(group, alts(r.value), labelFor);
         if (hit) { clickLike(hit); report.filled++; mark(hit.closest('label') || hit, true); }
         else report.needs.push(q.slice(0, 80));
         continue;
@@ -223,16 +232,17 @@
       }
 
       if (el.tagName === 'SELECT') {
-        const hit = best([...el.options], r.value, o => o.text);
+        const hit = bestAny([...el.options], alts(r.value), o => o.text);
         if (hit) { setValue(el, hit.value); report.filled++; mark(el, true); }
         else { report.needs.push(label.slice(0, 80)); mark(el, false); }
         continue;
       }
 
       const combo = el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list';
-      setValue(el, r.value);
+      const vals = alts(r.value);
+      setValue(el, vals[0]);
       if (combo) {
-        const ok = await pickFromListbox(r.value);
+        const ok = await pickFromListbox(vals);
         if (!ok) el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
       }
       report.filled++; mark(el, true);

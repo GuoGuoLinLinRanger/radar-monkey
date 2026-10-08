@@ -35,9 +35,9 @@
     ['over_18', 'At least 18?', 'Yes', 'Work eligibility'],
     ['how_heard', 'How did you hear about us', 'LinkedIn', 'Common questions'],
     ['previously_worked', 'Worked at this company before?', 'No', 'Common questions'],
-    ['gender', 'Gender', DECLINE, 'Voluntary (EEO)', 'These are optional on every form. The default declines.'],
-    ['hispanic', 'Hispanic or Latino', DECLINE, 'Voluntary (EEO)'],
-    ['race', 'Race / ethnicity', DECLINE, 'Voluntary (EEO)'],
+    ['gender', 'Gender', 'Male', 'Voluntary (EEO)', 'These are optional on every form. Leave as "' + DECLINE + '" to skip.'],
+    ['hispanic', 'Hispanic or Latino', 'No', 'Voluntary (EEO)'],
+    ['race', 'Race / ethnicity', 'Chinese | Asian', 'Voluntary (EEO)', 'Most specific first, separated by "|", e.g. Chinese | Asian. It tries each until a form option matches.'],
     ['veteran', 'Veteran status', DECLINE, 'Voluntary (EEO)'],
     ['disability', 'Disability status', DECLINE, 'Voluntary (EEO)'],
   ];
