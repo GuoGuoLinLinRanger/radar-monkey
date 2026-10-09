@@ -367,20 +367,36 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     'postgres','postgresql','mysql','mongodb','redis','elasticsearch','kafka','rabbitmq','spark','hadoop','snowflake','databricks','airflow','dbt','etl',
     'machine learning','deep learning','pytorch','tensorflow','keras','scikit-learn','pandas','numpy','nlp','computer vision','llm','transformers','hugging face','opencv',
     'data analysis','data engineering','data science','statistics','a/b testing','tableau','power bi','excel',
-    'distributed systems','algorithms','data structures','operating systems','networking','databases','api','backend','frontend','full stack','full-stack','embedded','firmware','fpga','verilog','rtos','android','ios','react native','flutter','unity','agile','scrum'];
+    'distributed systems','algorithms','data structures','operating systems','networking','databases','api','backend','frontend','full stack','embedded','firmware','fpga','verilog','rtos','android','ios','react native','flutter','unity','agile','scrum'];
+  // Some skills are spelled several ways. Treat each group as one skill, so a posting's
+  // "full stack" still matches "fullstack" on your resume (and vice versa).
+  const VARIANTS = {
+    'full stack': ['full stack', 'full-stack', 'fullstack'],
+    'frontend': ['frontend', 'front end', 'front-end'],
+    'backend': ['backend', 'back end', 'back-end'],
+    'node.js': ['node.js', 'nodejs', 'node js'],
+    'ci/cd': ['ci/cd', 'cicd', 'ci cd'],
+    'scikit-learn': ['scikit-learn', 'scikit learn', 'sklearn'],
+    'algorithms': ['algorithms', 'algorithm', 'algo', 'algos'],
+    'databases': ['databases', 'database', 'db'],
+    'data structures': ['data structures', 'data structure'],
+    'statistics': ['statistics', 'statistical', 'stats'],
+  };
   const esc_re = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // Word-boundary-ish match so "go" doesn't hit "good" and "r" doesn't hit everything.
   const hasSkill = (text, s) => new RegExp('(^|[^a-z0-9+#.])' + esc_re(s) + '([^a-z0-9+#.]|$)', 'i').test(text);
+  // True if the text names this skill under any of its spellings.
+  const named = (text, s) => (VARIANTS[s] || [s]).some(v => hasSkill(text, v));
   function scoreAll() {
     const extra = settings.keywords.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
     const deal = settings.deal.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
     const resumeText = ((settings.resume || '') + ' ' + extra.join(' ')).toLowerCase();
     const haveResume = !!resumeText.trim();
     // The skills your resume covers, plus any extra keywords you listed.
-    const mine = new Set(haveResume ? SKILLS.filter(s => hasSkill(resumeText, s)).concat(extra) : []);
+    const mine = new Set(haveResume ? SKILLS.filter(s => named(resumeText, s)).concat(extra) : []);
     for (const j of jobs) {
       if (!haveResume) { j.fit = null; j.fitHits = []; j.fitMiss = []; continue; }
-      const asked = SKILLS.filter(s => hasSkill(j.text, s)).concat(extra.filter(k => j.text.includes(k)));
+      const asked = SKILLS.filter(s => named(j.text, s)).concat(extra.filter(k => j.text.includes(k)));
       const uniq = [...new Set(asked)];
       if (!uniq.length) { j.fit = null; j.fitHits = []; j.fitMiss = []; continue; }
       const hits = uniq.filter(s => mine.has(s));
