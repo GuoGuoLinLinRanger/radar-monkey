@@ -42,10 +42,11 @@ enabled = true
 countries = ["US", "CA"]
 
 # ---------- Extra detail (pay, full posting text) ----------
-# Uses the official public job-board APIs of Greenhouse, Lever and Ashby.
+# Uses the official public job-board APIs of Greenhouse, Lever, Ashby and Workday.
+# Newest postings are enriched first; the rest catch up over the next few runs.
 [enrich]
 enabled = true
-max_per_run = 250
+max_per_run = 400
 
 # ---------- Watchlist: companies you want to catch the minute they post ----------
 # Polls the company's own job board every run. Find the board name in their careers URL:

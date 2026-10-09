@@ -153,4 +153,31 @@ def lookup(url: str) -> dict | None:
         for j in board_jobs("ashby", m.group(1)):
             if j["id"] == m.group(2):
                 return j
-    return None
+        return None
+    return lookup_workday(url)
+
+
+# Workday maps a public careers URL to a JSON "CXS" endpoint. A page like
+#   https://TENANT.wdN.myworkdayjobs.com/[lang/]SITE/job/PATH
+# is served as JSON at
+#   https://TENANT.wdN.myworkdayjobs.com/wday/cxs/TENANT/SITE/job/PATH
+# Some tenants return 403/404; those are skipped like any other miss.
+_WD_RE = re.compile(
+    r"https?://([\w-]+)\.(wd\d+)\.myworkdayjobs\.com/(?:[a-z]{2}-[A-Za-z]{2}/)?([^/]+)/job/(.+?)/?$"
+)
+_WD_MODEL = {"remote": "Remote", "hybrid": "Hybrid", "onsite": "On Site", "on-site": "On Site"}
+
+
+def lookup_workday(url: str) -> dict | None:
+    m = _WD_RE.match(url)
+    if not m:
+        return None
+    tenant, wd, site, path = m.groups()
+    api = f"https://{tenant}.{wd}.myworkdayjobs.com/wday/cxs/{tenant}/{site}/job/{path}"
+    d = get(api, as_json=True)
+    info = (d or {}).get("jobPostingInfo") or {}
+    text = strip_html(info.get("jobDescription", ""))
+    if not text:
+        return None
+    model = _WD_MODEL.get((info.get("remoteType") or "").strip().lower(), "")
+    return {"text": text, "pay": N.pay_from_text(text), "model": model}

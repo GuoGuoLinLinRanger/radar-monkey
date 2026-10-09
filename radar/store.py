@@ -114,7 +114,7 @@ def merge(fresh: list[dict], cfg: dict) -> tuple[dict, list[str]]:
     # 4. enrichment: pay + full text from public ATS APIs
     en = cfg.get("enrich", {})
     if en.get("enabled", True):
-        todo = [j for j in jobs if j["active"] and not j.get("enriched") and j["ats"] in ("Greenhouse", "Lever", "Ashby")]
+        todo = [j for j in jobs if j["active"] and not j.get("enriched") and j["ats"] in ("Greenhouse", "Lever", "Ashby", "Workday")]
         todo.sort(key=lambda j: j["posted_at"], reverse=True)
         done = 0
         for j in todo[: en.get("max_per_run", 250)]:
