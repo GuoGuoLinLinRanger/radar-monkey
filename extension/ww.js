@@ -52,6 +52,19 @@
     for (const [l, v] of fields) if (keys.some(k => l.includes(k))) parts.push(clean(v));
     return [...new Set(parts)].join('\n\n');
   }
+  // The full posting body. WaterlooWorks puts Job Summary / Responsibilities /
+  // Required Skills in multi-paragraph blocks that the label reader truncates, so we
+  // also grab the tightest container that holds those sections — nothing gets missed.
+  function mainText() {
+    let best = '';
+    for (const el of document.querySelectorAll('main, [role="main"], article, section, div')) {
+      const t = el.innerText || '';
+      if (t.length < 200 || t.length > 20000) continue;
+      if (!/responsibilit|job summary|qualification|required skill|job posting information/i.test(t)) continue;
+      if (!best || t.length < best.length) best = t;   // smallest match = tightest fit, least page chrome
+    }
+    return clean(best).slice(0, 12000);
+  }
 
   function headerBits() {
     // The title/org and the job-id pill live above the OVERVIEW tabs.
@@ -107,7 +120,9 @@
     const level = clean(pick(fields, 'level')).replace(/\n+/g, ', ');
     const openings = clean(pick(fields, 'number of job openings', 'openings'));
     const model = modelOf(pick(fields, 'employment location arrangement', 'location arrangement', 'work location'));
-    const description = gather(fields, 'job summary', 'summary', 'job responsibilities', 'responsibilities', 'required skills', 'skills', 'description', 'targeted degrees');
+    let description = gather(fields, 'job summary', 'summary', 'job responsibilities', 'responsibilities', 'required skills', 'skills', 'description', 'targeted degrees');
+    const full = mainText();                              // keep whichever has more of the posting
+    if (full.length > description.length) description = full;
     const countries = /united states|usa|\bus\b/.test(lower(country)) ? ['US'] : ['CA'];
     const terms = [term, jobType && jobType !== term ? jobType : ''].filter(Boolean);
     return {
