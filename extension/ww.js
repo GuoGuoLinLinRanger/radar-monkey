@@ -170,6 +170,118 @@
     return out;
   }
 
+  // ---- background "collect all": fetch each posting's detail via the site's own
+  //      request, parse the HTML, no page-opening. Uses a session token learned from
+  //      ww_main.js when you open any one posting. Never applies to anything.
+  let wwToken = '';
+  window.addEventListener('message', (ev) => {
+    if (ev.source === window && ev.data && ev.data.rm === 'ww-token' && ev.data.token) {
+      wwToken = ev.data.token;
+      try { chrome.storage.local.set({ wwToken }); } catch (e) {}
+    }
+  });
+  async function getToken() {
+    if (wwToken) return wwToken;
+    try { const { wwToken: t } = await chrome.storage.local.get('wwToken'); wwToken = t || ''; } catch (e) {}
+    return wwToken;
+  }
+
+  function htmlToText(h) {
+    if (!h) return '';
+    let s = h.replace(/<\s*br\s*\/?>/gi, '\n').replace(/<\/(p|li|div|h\d|tr)>/gi, '\n').replace(/<\s*li[^>]*>/gi, '• ');
+    const d = document.createElement('div'); d.innerHTML = s;
+    return clean(d.textContent || '');
+  }
+  function parsePay(t, country) {
+    if (!t) return null;
+    const nums = (t.match(/\$\s*[\d,]+(?:\.\d+)?/g) || []).map(x => parseFloat(x.replace(/[^\d.]/g, ''))).filter(n => n > 0);
+    if (!nums.length) return null;
+    const lo = Math.min(nums[0], nums[1] || nums[0]), hi = Math.max(nums[0], nums[1] || nums[0]);
+    const cur = /united states|usa|\bus\b/i.test(country || '') ? 'USD' : 'CAD';
+    const hourly = /\/\s*h|per hour|hourly|\bhr\b|\/hr/i.test(t) || (!/year|annum|annual|\/yr|\byr\b/i.test(t) && hi < 200);
+    if (hourly) return { currency: cur, unit: 'hr', hourly_min: lo, hourly_max: hi, annual_min: Math.round(lo * 2080), annual_max: Math.round(hi * 2080) };
+    return { currency: cur, unit: 'yr', hourly_min: Math.round(lo / 2080 * 100) / 100, hourly_max: Math.round(hi / 2080 * 100) / 100, annual_min: Math.round(lo), annual_max: Math.round(hi) };
+  }
+
+  // Parse one posting's detail HTML (WaterlooWorks "label + <p>" blocks) into a record.
+  function parseDetail(html, postingId) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const F = {};
+    doc.querySelectorAll('.tag__key-value-list, .js--question--container').forEach(c => {
+      const lab = c.querySelector('.label');
+      if (!lab) return;
+      const key = clean(lab.textContent).replace(/:\s*$/, '').toLowerCase();
+      if (!key || (key in F)) return;
+      // The value isn't always in the <p>: the browser hoists block elements (ul, div,
+      // table) out of <p>, so take the whole container minus its label instead.
+      const clone = c.cloneNode(true);
+      const l2 = clone.querySelector('.label'); if (l2) l2.remove();
+      F[key] = clone;
+    });
+    const txt = (k) => F[k] ? clean(F[k].textContent) : '';
+    const htmlv = (k) => F[k] ? htmlToText(F[k].innerHTML) : '';
+    const title = txt('job title');
+    const company = txt('organization');
+    if (!title && !company) return null;                 // not a detail payload
+    const city = txt('job - city'), prov = txt('job - province/state'), country = txt('job - country');
+    const loc = [city, prov].filter(Boolean).join(', ') || txt('region');
+    const term = txt('work term'), jobType = txt('job type');
+    const descParts = [];
+    for (const [label, key] of [['Summary', 'job summary'], ['Responsibilities', 'job responsibilities'],
+      ['Required skills', 'required skills'], ['Special requirements', 'special job requirements'],
+      ['Compensation', 'compensation and benefits']]) {
+      const v = htmlv(key); if (v) descParts.push(label + ':\n' + v);
+    }
+    const description = descParts.join('\n\n').slice(0, 12000);
+    return {
+      id: 'ww:' + postingId, kind: 'intern', title, company,
+      url: 'https://waterlooworks.uwaterloo.ca/myAccount/co-op/full/jobs.htm#' + postingId,
+      locations: loc ? [loc] : [], countries: /united states|usa|\bus\b/i.test(country) ? ['US'] : ['CA'],
+      terms: [term, jobType && jobType !== term ? jobType : ''].filter(Boolean),
+      level: htmlv('level').replace(/\n+/g, ', '), openings: txt('number of job openings'),
+      work_model: modelOf(txt('employment location arrangement')),
+      remote_ok: /remote/i.test(txt('employment location arrangement')),
+      category: categoryOf(title + ' ' + description),
+      description, pay: parsePay(txt('compensation and benefits'), country) || {},
+      first_seen: new Date().toISOString(),
+    };
+  }
+
+  // Every posting id in the current results table (the ID column).
+  function getPostingIds() {
+    const ids = new Set();
+    document.querySelectorAll('table tr').forEach(tr => {
+      for (const c of tr.querySelectorAll('td')) { const t = clean(c.textContent); if (/^\d{5,7}$/.test(t)) { ids.add(t); break; } }
+    });
+    return [...ids];
+  }
+
+  async function collectAll() {
+    const token = await getToken();
+    if (!token) return toast('First open any one posting (so I can learn the request), then click Collect all.', false);
+    const ids = getPostingIds();
+    if (!ids.length) return toast('No postings found here. Open the job search results list, then Collect all.', false);
+    toast('Collecting ' + ids.length + ' postings in the background…', true);
+    const recs = []; let ok = 0, skip = 0;
+    for (const id of ids) {
+      try {
+        const r = await fetch('/myAccount/co-op/full/jobs.htm', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest' },
+          body: 'action=' + encodeURIComponent(token) + '&postingId=' + encodeURIComponent(id),
+        });
+        const text = await r.text();
+        if (/notLoggedIn|Not Logged In/i.test(text)) { toast('WaterlooWorks logged out — reload, log in, open one posting, then retry.', false); break; }
+        const rec = parseDetail(text, id);
+        if (rec) { recs.push(rec); ok++; } else skip++;
+      } catch (e) { skip++; }
+      await sleep(350 + Math.random() * 250);            // gentle, browser-like pacing
+    }
+    if (recs.length) { await store(recs); toast('Saved ' + ok + ' postings to Radar Monkey' + (skip ? ' (' + skip + ' skipped)' : '') + '.', true); }
+    else toast('Collected 0. The token may be stale — open one posting and try again.', false);
+  }
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
   // ---- persistence ----
   async function store(recs) {
     if (!recs.length) return 0;
@@ -248,6 +360,11 @@
     save.textContent = 'Save to Radar Monkey';
     save.style.cssText = 'padding:10px 14px;border:0;border-radius:8px;cursor:pointer;color:#fff;background:#2563eb;box-shadow:0 2px 8px rgba(0,0,0,.25)';
     save.addEventListener('click', onSave);
+    const all = document.createElement('button');
+    all.textContent = 'Collect all';
+    all.title = 'Grab every posting on this results page in the background (open one posting first).';
+    all.style.cssText = 'padding:10px 14px;border:0;border-radius:8px;cursor:pointer;color:#fff;background:#7c3aed;box-shadow:0 2px 8px rgba(0,0,0,.25)';
+    all.addEventListener('click', collectAll);
     const lbl = document.createElement('label');
     lbl.style.cssText = 'display:flex;gap:6px;align-items:center;padding:8px 10px;border-radius:8px;background:#fff;color:#111;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer';
     const cb = document.createElement('input'); cb.type = 'checkbox';
@@ -258,7 +375,7 @@
       toast(autoOn ? 'Auto-save on. Every posting and list you open is saved.' : 'Auto-save off.', true);
       if (autoOn) autoRun();
     });
-    wrap.append(save, lbl);
+    wrap.append(save, all, lbl);
     document.body.appendChild(wrap);
     chrome.storage.local.get('wwAuto').then(({ wwAuto }) => { autoOn = cb.checked = !!wwAuto; if (autoOn) autoRun(); });
   }

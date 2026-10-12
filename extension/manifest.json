@@ -61,6 +61,12 @@
     },
     {
       "matches": ["https://waterlooworks.uwaterloo.ca/*"],
+      "js": ["ww_main.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://waterlooworks.uwaterloo.ca/*"],
       "js": ["ww.js"],
       "run_at": "document_idle"
     }
