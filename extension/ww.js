@@ -249,12 +249,19 @@
     };
   }
 
-  // Every posting id in the current results table (the ID column).
+  // Every posting id in the current results list (the ID column). The grid is a
+  // styled div grid, not a <table>, so read ids by text: first any leaf element
+  // that is exactly a 6-digit id, then the row text around each posting title link.
   function getPostingIds() {
     const ids = new Set();
-    document.querySelectorAll('table tr').forEach(tr => {
-      for (const c of tr.querySelectorAll('td')) { const t = clean(c.textContent); if (/^\d{5,7}$/.test(t)) { ids.add(t); break; } }
+    const norm = (s) => String(s || '').replace(/[ ​‌‍﻿]/g, ' ').replace(/\s+/g, ' ').trim();
+    document.querySelectorAll('td, div, span, a, p, li, b, strong').forEach(el => {
+      if (el.children.length === 0 && /^\d{6}$/.test(norm(el.textContent))) ids.add(norm(el.textContent));
     });
+    if (!ids.size) document.querySelectorAll('h3 a, h4 a, h5 a').forEach(a => {
+      let p = a; for (let i = 0; i < 6 && p; i++, p = p.parentElement) { const m = norm(p.textContent).match(/\b(\d{6})\b/); if (m) { ids.add(m[1]); break; } }
+    });
+    if (!ids.size) (norm(document.body.innerText).match(/\b\d{6}\b/g) || []).forEach(x => ids.add(x));
     return [...ids];
   }
 
