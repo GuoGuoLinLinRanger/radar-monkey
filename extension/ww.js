@@ -239,6 +239,8 @@
       locations: loc ? [loc] : [], countries: /united states|usa|\bus\b/i.test(country) ? ['US'] : ['CA'],
       terms: [term, jobType && jobType !== term ? jobType : ''].filter(Boolean),
       level: htmlv('level').replace(/\n+/g, ', '), openings: txt('number of job openings'),
+      duration: txt('work term duration'), deadline: txt('application deadline'),
+      docs: txt('application documents required'), degrees: htmlv('targeted degrees and disciplines'),
       work_model: modelOf(txt('employment location arrangement')),
       remote_ok: /remote/i.test(txt('employment location arrangement')),
       category: categoryOf(title + ' ' + description),
