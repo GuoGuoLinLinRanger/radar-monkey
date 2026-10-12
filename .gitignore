@@ -5,3 +5,4 @@ dist/
 data/
 state/
 .DS_Store
+applications/
