@@ -173,6 +173,36 @@ def _amz_posted(s: str) -> str:
     return ""
 
 
+# ---------- Eightfold (explore.jobs.<host>) — used by Netflix and others ----------
+_EF_TERMS = ["intern", "new grad", "university graduate", "co-op"]
+
+
+def _eightfold(host: str, domain: str, terms: list[str] | None = None) -> list[dict]:
+    seen: set[str] = set()
+    out: list[dict] = []
+    for q in (terms or _EF_TERMS):
+        url = (f"https://{host}/api/apply/v2/jobs?domain={domain}&query="
+               + urllib.parse.quote(q) + "&start=0&num=50&sort_by=timestamp")
+        d = get(url, as_json=True)
+        for j in (d or {}).get("positions") or []:
+            jid = j.get("display_job_id") or str(j.get("id") or "")
+            if not jid or jid in seen:
+                continue
+            seen.add(jid)
+            locs = j.get("locations")
+            if not isinstance(locs, list) or not locs:
+                locs = [j.get("location")] if j.get("location") else []
+            locs = [str(x).replace(",", ", ") for x in locs if x][:5] or [""]
+            text = strip_html(j.get("job_description") or "")
+            out.append({
+                "id": jid, "title": j.get("name", ""), "locations": locs,
+                "url": j.get("canonicalPositionUrl") or f"https://{host}/careers/job/{j.get('id')}",
+                "posted": iso_from_ts(j.get("t_create")),
+                "text": text, "pay": N.pay_from_text(text), "model": "",
+            })
+    return out
+
+
 def _amazon(terms: list[str] | None = None, country: str = "USA") -> list[dict]:
     seen: set[str] = set()
     out: list[dict] = []
@@ -210,6 +240,12 @@ def _board_for(b: dict):
     if ats == "amazon":
         country = b.get("country", "USA")
         return _cached(("amazon", country), lambda: _amazon(b.get("terms"), country)), "amazon"
+    if ats == "eightfold":
+        host, domain = b.get("host", ""), b.get("domain", "")
+        if not host or not domain:
+            return None, ""
+        label = (b.get("company", "") or domain).lower().replace(" ", "")
+        return _cached(("eightfold", host), lambda: _eightfold(host, domain, b.get("terms"))), label
     board = b.get("board", "")
     if ats in LOADERS and board:
         return board_jobs(ats, board), board

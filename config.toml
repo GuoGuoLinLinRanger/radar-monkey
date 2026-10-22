@@ -216,6 +216,13 @@ ats = "amazon"
 company = "Amazon"
 country = "USA"
 
+# ---- Netflix (Eightfold explore API) ----
+[[watch.boards]]
+ats = "eightfold"
+company = "Netflix"
+host = "explore.jobs.netflix.net"
+domain = "netflix.com"
+
 # ---------- Alerts (Discord) ----------
 # Set a repo secret called RADAR_DISCORD_WEBHOOK to get pinged about NEW matches.
 # Every field is optional. Words match the title (case does not matter).
@@ -232,3 +239,19 @@ hide_citizen_only = true
 [[alerts]]
 name = "Watchlist companies, any role"
 sources = ["watch"]
+
+# Ping me the moment a big tech company posts a relevant early-career role. Covers the
+# ones we can't pull from their own site (Google, Meta, Apple, Microsoft) — those arrive
+# via Simplify, usually a day or two behind — plus the ones we do pull direct. Needs the
+# RADAR_DISCORD_WEBHOOK repo secret set, or it just prints the count and sends nothing.
+[[alerts]]
+name = "Big tech, SWE/AI early career (US/CA)"
+countries = ["US", "CA"]
+companies = ["Google", "Google DeepMind", "YouTube", "Waymo", "Meta", "Facebook", "Apple",
+             "Microsoft", "Netflix", "Amazon", "Amazon Web Services", "AWS", "NVIDIA", "Nvidia",
+             "Salesforce", "Adobe", "Intel", "Stripe", "Databricks", "OpenAI", "Anthropic"]
+any_words = ["software", "developer", "engineer", "swe", "backend", "frontend", "full stack",
+             "infrastructure", "machine learning", "artificial intelligence", "data scien",
+             "data engineer", "platform", "systems", "research scien", "applied scien"]
+none_words = ["senior", "staff", "principal", "director", "manager", "lead", "phd"]
+hide_citizen_only = true
