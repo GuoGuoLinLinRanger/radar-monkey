@@ -148,7 +148,7 @@
   function setValue(el, v) {
     const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : el instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
     const setter = Object.getOwnPropertyDescriptor(proto, 'value').set;
-    el.focus();
+    el.focus({ preventScroll: true });   // don't scroll the page to each field as we fill
     setter.call(el, v);
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
@@ -201,6 +201,7 @@
       const desc = (label + ' ' + hints(el)).trim();
 
       if (t === 'file') {
+        if (auto) { const dsig = sig(el, label); if (TRIED.has(dsig)) continue; TRIED.add(dsig); }
         const fileDesc = desc + ' ' + questionFor(el);
         const attach = async (doc, lbl) => {
           try {
@@ -226,8 +227,11 @@
         const name = el.name;
         const group = name ? fields.filter(x => x.type === 'radio' && x.name === name) : [el];
         group.forEach(x => done.add(x));
-        if (group.some(x => x.checked) && !overwrite) continue;
         const q = questionFor(el);
+        const rsig = 'radio|' + (name || norm(q));
+        if (auto && TRIED.has(rsig)) continue;
+        if (group.some(x => x.checked) && !overwrite) { if (auto) TRIED.add(rsig); continue; }
+        if (auto) TRIED.add(rsig);
         const r = resolve(q + ' ' + hints(el), el);
         if (!r || !r.value) { if (isRequired(el, q)) report.needs.push(q.slice(0, 80)); continue; }
         const hit = bestAny(group, alts(r.value), labelFor);
@@ -236,9 +240,15 @@
         continue;
       }
 
+      // Auto-fill handles each logical field once, keyed by a stable signature (not the DOM
+      // node). React forms re-render a field as a fresh node after we type into it; without
+      // this we'd re-type it every time, which jumps the page and never settles.
+      const fsig = sig(el, label);
+      if (auto && TRIED.has(fsig)) continue;
       const r = resolve(desc, el);
       const hasValue = el.tagName === 'SELECT' ? (el.selectedIndex > 0 && norm(el.options[el.selectedIndex].text) && !/select|choose/.test(norm(el.options[el.selectedIndex].text))) : !!el.value;
-      if (hasValue && !overwrite) continue;
+      if (hasValue && !overwrite) { if (auto) TRIED.add(fsig); continue; }
+      if (auto) TRIED.add(fsig);                     // committing to this field; don't revisit it on re-render
       if (!r || r.value == null || r.value === '') {
         if (isRequired(el, label) && !hasValue) { report.needs.push(label.slice(0, 80) || hints(el)); mark(el, false); }
         continue;
@@ -252,7 +262,6 @@
       }
 
       const combo = el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list';
-      if (auto && combo) { const k = sig(el, label); if (TRIED.has(k)) continue; TRIED.add(k); }
       const vals = alts(r.value);
       setValue(el, vals[0]);
       if (combo) {

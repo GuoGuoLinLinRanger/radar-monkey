@@ -79,7 +79,7 @@
     ['major', /major|field of study|discipline|program of study|area of study|concentration/],
     ['gpa', /\bgpa\b|grade point|cumulative average/],
     ['grad', /graduat/],
-    ['start_available', /start date|available to start|earliest (possible )?start|when can you start|availability/],
+    ['start_available', /available to start|available start|earliest (possible )?start|when can you start|\bavailability\b|start date(?! month| year)/],
     ['sponsor', /sponsor/],
     ['work_auth', /authori[sz]ed|legally (eligible|able|permitted|entitled)|eligible to work|right to work|work permit|work visa/],
     ['relocate', /relocat/],
