@@ -2,7 +2,7 @@ name: Update jobs
 
 on:
   schedule:
-    - cron: "17 */3 * * *"   # every 3 hours
+    - cron: "*/15 * * * *"   # every 15 min, to catch company postings fast (GitHub may delay it under load)
   workflow_dispatch: {}        # "Run workflow" button
   push:
     branches: [main]

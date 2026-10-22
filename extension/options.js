@@ -34,12 +34,13 @@ function renderLearned(learned) {
 }
 
 async function load() {
-  const s = await chrome.storage.local.get(['profile', 'answers', 'learned', 'resume', 'overwrite', 'dashboardUrl', 'dashboardSeen', 'apiKey', 'genContext']);
+  const s = await chrome.storage.local.get(['profile', 'answers', 'learned', 'resume', 'cover', 'overwrite', 'dashboardUrl', 'dashboardSeen', 'apiKey', 'genContext']);
   renderProfile(s.profile || {});
   $('answers').innerHTML = '';
   (s.answers && s.answers.length ? s.answers : STARTER_ANSWERS).forEach(answerRow);
   renderLearned(s.learned || {});
   $('resume-name').textContent = s.resume ? `Current: ${s.resume.name}` : 'No resume yet';
+  $('cover-name').textContent = s.cover ? `Current: ${s.cover.name}` : 'No cover letter yet';
   $('overwrite').checked = !!s.overwrite;
   $('dashboardUrl').value = s.dashboardUrl || s.dashboardSeen || '';
   $('apiKey').value = s.apiKey || '';
@@ -60,6 +61,12 @@ $('resume').onchange = (e) => {
   const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
   r.onload = async () => { await chrome.storage.local.set({ resume: { name: f.name, type: f.type, dataUrl: r.result } }); $('resume-name').textContent = `Current: ${f.name}`; };
+  r.readAsDataURL(f);
+};
+$('cover').onchange = (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = async () => { await chrome.storage.local.set({ cover: { name: f.name, type: f.type, dataUrl: r.result } }); $('cover-name').textContent = `Current: ${f.name}`; };
   r.readAsDataURL(f);
 };
 $('export').onclick = async () => {

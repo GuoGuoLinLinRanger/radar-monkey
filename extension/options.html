@@ -26,6 +26,10 @@ input[type=text], textarea { width: 100%; padding: 6px 8px; border: 1px solid va
   <p class="hint">Attached to "Resume/CV" upload fields. Swap it any time, e.g. after tailoring.</p>
   <input type="file" id="resume" accept=".pdf,.doc,.docx"> <span id="resume-name" class="hint"></span>
 
+  <h2>Cover letter</h2>
+  <p class="hint">Attached to "Cover letter" upload fields. Ships with a general one; replace it here any time.</p>
+  <input type="file" id="cover" accept=".pdf,.doc,.docx"> <span id="cover-name" class="hint"></span>
+
   <h2>Your answers to common questions</h2>
   <p class="hint">If a question contains the words on the left, the answer on the right is used. Wrap in slashes for a pattern, e.g. <code>/why.*(us|company)/</code>. These win over the profile above.</p>
   <p class="hint">Put <code>[[generate]]</code> as the answer and the extension will write a tailored answer from the company, the role, and the posting on the page (needs an API key below). Good for "why this company" and "tell us about a project".</p>

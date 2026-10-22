@@ -5,6 +5,10 @@
 max_age_days = 60
 # Keep closed postings for this many days so you can see "posting closed" on tracked jobs.
 closed_grace_days = 14
+# Drop jobs whose only source is in this list, including ones already saved. Jobright and
+# Intern Insider expose no public apply link (every link lands on a sign-up wall), so we
+# don't keep their postings around.
+drop_sources = ["jobright", "interninsider"]
 
 # ---------- Sources ----------
 
@@ -15,7 +19,8 @@ intern_url  = "https://raw.githubusercontent.com/SimplifyJobs/Summer2027-Interns
 newgrad_url = "https://raw.githubusercontent.com/SimplifyJobs/New-Grad-Positions/dev/.github/scripts/listings.json"
 
 [sources.jobright]
-enabled = true
+# Off: every Jobright link lands on a jobright.ai sign-up wall, no real apply URL.
+enabled = false
 # Public daily lists Jobright posts on GitHub (last 7 days of postings, with work model).
 repos = [
   { repo = "jobright-ai/2026-Software-Engineer-Internship", kind = "intern",  category = "Software" },
@@ -38,7 +43,8 @@ categories = ["swe"]
 [sources.interninsider]
 # interninsider.me: a second list that the GitHub mirrors don't cover. Static site,
 # one request per posting (cached after the first run), SWE decided by title.
-enabled = true
+# Off: Intern Insider exposes no public apply link (links go behind a login).
+enabled = false
 countries = ["US", "CA"]
 
 # ---------- Extra detail (pay, full posting text) ----------
@@ -52,23 +58,163 @@ max_per_run = 400
 # Polls the company's own job board every run. Find the board name in their careers URL:
 #   job-boards.greenhouse.io/<board>   jobs.lever.co/<board>   jobs.ashbyhq.com/<board>
 [watch]
-title_regex = "(?i)intern|co-?op|new ?grad|university|graduate|early career|entry|junior|apprentice"
+# "intern(?!ational)" keeps "Intern" but not "International". Keep this filter in sync if you edit it.
+title_regex = "(?i)intern(?!ational)|co-?op|new ?grad|university|graduate|early career|entry.level|\\bjunior\\b|apprentice"
 
+# ===== Straight from the company's own careers site (official public APIs) =====
+# These show first, in their own section on the board. Greenhouse/Lever/Ashby take a
+# board slug (from the careers URL). Workday needs tenant + wd number + site (from the
+# myworkdayjobs.com URL). Amazon uses its own search API. Add a company: copy a block.
+
+# ---- Greenhouse (boards-api.greenhouse.io/v1/boards/<board>) ----
 [[watch.boards]]
 ats = "greenhouse"
 board = "stripe"
-
+company = "Stripe"
 [[watch.boards]]
 ats = "greenhouse"
 board = "databricks"
+company = "Databricks"
+[[watch.boards]]
+ats = "greenhouse"
+board = "anthropic"
+company = "Anthropic"
+[[watch.boards]]
+ats = "greenhouse"
+board = "scaleai"
+company = "Scale AI"
+[[watch.boards]]
+ats = "greenhouse"
+board = "figma"
+company = "Figma"
+[[watch.boards]]
+ats = "greenhouse"
+board = "airbnb"
+company = "Airbnb"
+[[watch.boards]]
+ats = "greenhouse"
+board = "robinhood"
+company = "Robinhood"
+[[watch.boards]]
+ats = "greenhouse"
+board = "coinbase"
+company = "Coinbase"
+[[watch.boards]]
+ats = "greenhouse"
+board = "discord"
+company = "Discord"
+[[watch.boards]]
+ats = "greenhouse"
+board = "reddit"
+company = "Reddit"
+[[watch.boards]]
+ats = "greenhouse"
+board = "instacart"
+company = "Instacart"
+[[watch.boards]]
+ats = "greenhouse"
+board = "dropbox"
+company = "Dropbox"
+[[watch.boards]]
+ats = "greenhouse"
+board = "brex"
+company = "Brex"
+[[watch.boards]]
+ats = "greenhouse"
+board = "vercel"
+company = "Vercel"
+[[watch.boards]]
+ats = "greenhouse"
+board = "cloudflare"
+company = "Cloudflare"
+[[watch.boards]]
+ats = "greenhouse"
+board = "lyft"
+company = "Lyft"
+[[watch.boards]]
+ats = "greenhouse"
+board = "roblox"
+company = "Roblox"
+[[watch.boards]]
+ats = "greenhouse"
+board = "gitlab"
+company = "GitLab"
+[[watch.boards]]
+ats = "greenhouse"
+board = "asana"
+company = "Asana"
+[[watch.boards]]
+ats = "greenhouse"
+board = "samsungresearchamerica"
+company = "Samsung Research America"
 
+# ---- Ashby (api.ashbyhq.com/posting-api/job-board/<board>) ----
+[[watch.boards]]
+ats = "ashby"
+board = "openai"
+company = "OpenAI"
+[[watch.boards]]
+ats = "ashby"
+board = "notion"
+company = "Notion"
 [[watch.boards]]
 ats = "ashby"
 board = "ramp"
+company = "Ramp"
+[[watch.boards]]
+ats = "ashby"
+board = "linear"
+company = "Linear"
 
+# ---- Lever (api.lever.co/v0/postings/<board>) ----
 [[watch.boards]]
 ats = "lever"
 board = "palantir"
+company = "Palantir"
+
+# ---- Workday (tenant.wdN.myworkdayjobs.com/SITE) ----
+[[watch.boards]]
+ats = "workday"
+company = "NVIDIA"
+tenant = "nvidia"
+wd = "wd5"
+site = "NVIDIAExternalCareerSite"
+[[watch.boards]]
+ats = "workday"
+company = "Salesforce"
+tenant = "salesforce"
+wd = "wd12"
+site = "External_Career_Site"
+[[watch.boards]]
+ats = "workday"
+company = "Adobe"
+tenant = "adobe"
+wd = "wd5"
+site = "external_experienced"
+[[watch.boards]]
+ats = "workday"
+company = "Intel"
+tenant = "intel"
+wd = "wd1"
+site = "External"
+[[watch.boards]]
+ats = "workday"
+company = "Autodesk"
+tenant = "autodesk"
+wd = "wd1"
+site = "Ext"
+[[watch.boards]]
+ats = "workday"
+company = "Workday"
+tenant = "workday"
+wd = "wd5"
+site = "Workday"
+
+# ---- Amazon (amazon.jobs public search) ----
+[[watch.boards]]
+ats = "amazon"
+company = "Amazon"
+country = "USA"
 
 # ---------- Alerts (Discord) ----------
 # Set a repo secret called RADAR_DISCORD_WEBHOOK to get pinged about NEW matches.

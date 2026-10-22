@@ -100,11 +100,14 @@ def merge(fresh: list[dict], cfg: dict) -> tuple[dict, list[str]]:
     keep_cfg = cfg.get("keep", {})
     max_age = keep_cfg.get("max_age_days", 60) * 86400
     grace = keep_cfg.get("closed_grace_days", 14) * 86400
+    drop = set(keep_cfg.get("drop_sources", []))
     for jid, j in old.items():
         if jid not in run:
             run[jid] = j
     jobs = []
     for j in run.values():
+        if drop and set(j.get("sources") or []) <= drop:
+            continue  # only on dropped sources (e.g. gated aggregators): remove entirely
         if now_ts - parse_iso(j.get("posted_at") or j.get("first_seen", "")) > max_age:
             continue
         if not j["active"] and now_ts - parse_iso(j.get("closed_at", now)) > grace:

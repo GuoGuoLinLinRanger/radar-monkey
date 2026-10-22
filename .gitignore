@@ -6,3 +6,7 @@ data/
 state/
 .DS_Store
 applications/
+
+# bundled personal resume/cover for the autofill extension — never commit (public repo)
+extension/general_resume.pdf
+extension/general_cover.pdf

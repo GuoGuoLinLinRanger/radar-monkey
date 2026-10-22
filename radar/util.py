@@ -51,6 +51,26 @@ def get(url: str, *, as_json: bool = False, timeout: int = 30, retries: int = 2)
     return None
 
 
+def post_json(url: str, payload: dict, *, timeout: int = 30, retries: int = 2, headers: dict | None = None):
+    """POST a JSON body and return parsed JSON, or None on failure (never raises)."""
+    data = json.dumps(payload).encode()
+    h = {"User-Agent": UA, "Accept": "application/json", "Content-Type": "application/json"}
+    if headers:
+        h.update(headers)
+    for attempt in range(retries + 1):
+        try:
+            req = urllib.request.Request(url, data=data, method="POST", headers=h)
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return json.loads(r.read().decode("utf-8", "replace"))
+        except urllib.error.HTTPError as e:
+            if e.code in (400, 403, 404, 410):
+                return None
+        except Exception:
+            pass
+        time.sleep(1.5 * (attempt + 1))
+    return None
+
+
 def slug(s: str) -> str:
     s = (s or "").lower()
     s = re.sub(r"\(.*?\)|\[.*?\]", " ", s)

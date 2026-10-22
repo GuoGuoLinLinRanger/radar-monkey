@@ -1,3 +1,36 @@
+// Ship a default resume + cover letter with the extension so autofill uploads them out
+// of the box. Force-set once per DOCS_VERSION (so a new bundled doc rolls out on reload);
+// after that the user can replace either from the options page without it being clobbered.
+const DOCS_VERSION = 4;
+const B64_CHUNK = 0x8000;
+function bufToDataUrl(buf) {
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += B64_CHUNK) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + B64_CHUNK));
+  return 'data:application/pdf;base64,' + btoa(bin);
+}
+async function bundledDoc(path, name) {
+  const buf = await (await fetch(chrome.runtime.getURL(path))).arrayBuffer();
+  return { name, type: 'application/pdf', dataUrl: bufToDataUrl(buf) };
+}
+let _docsReady = null;
+async function ensureDocs() {
+  if (_docsReady) return _docsReady;
+  _docsReady = (async () => {
+    const { docsVersion } = await chrome.storage.local.get('docsVersion');
+    if (docsVersion === DOCS_VERSION) return;
+    try {
+      const resume = await bundledDoc('general_resume.pdf', 'Tian Yi Tong - Resume.pdf');
+      const cover = await bundledDoc('general_cover.pdf', 'Tian Yi Tong - Cover Letter.pdf');
+      await chrome.storage.local.set({ resume, cover, docsVersion: DOCS_VERSION });
+    } catch (e) { /* bundled file missing; leave whatever the user already set */ }
+  })();
+  return _docsReady;
+}
+chrome.runtime.onInstalled.addListener(ensureDocs);
+chrome.runtime.onStartup.addListener(ensureDocs);
+ensureDocs();
+
 // Runs the fill script in every frame of the current tab (application forms often live in an iframe).
 async function activeTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -9,13 +42,14 @@ async function inject(tabId) {
 }
 
 async function fill(tabId) {
-  const { profile = {}, answers = [], learned = {}, resume = null, overwrite = false } =
-    await chrome.storage.local.get(['profile', 'answers', 'learned', 'resume', 'overwrite']);
+  await ensureDocs();
+  const { profile = {}, answers = [], learned = {}, resume = null, cover = null, overwrite = false } =
+    await chrome.storage.local.get(['profile', 'answers', 'learned', 'resume', 'cover', 'overwrite']);
   await inject(tabId);
   const results = await chrome.scripting.executeScript({
     target: { tabId, allFrames: true },
     func: (data) => window.__rmRun ? window.__rmRun(data) : null,
-    args: [{ profile, answers, learned, resume, overwrite }],
+    args: [{ profile, answers, learned, resume, cover, overwrite }],
   });
   const out = { filled: 0, needs: [] };
   for (const r of results) if (r && r.result) { out.filled += r.result.filled; out.needs.push(...r.result.needs); }

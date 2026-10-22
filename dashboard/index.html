@@ -86,6 +86,11 @@ td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: to
 tr.row { cursor: pointer; }
 tr.row:hover td { background: var(--surface-2); }
 tr.row.closed td { opacity: .55; }
+tr.section td { padding: 16px 10px 6px; background: var(--bg); border-bottom: 2px solid var(--line); }
+tr.section:first-child td { padding-top: 4px; }
+tr.section .sec-name { font-weight: 700; font-size: 12px; letter-spacing: .03em; text-transform: uppercase; color: var(--fg); }
+tr.section .sec-n { color: var(--fg-2); font-weight: 600; }
+tr.section .sec-note { color: var(--fg-2); font-weight: 400; font-size: 12px; }
 td.title a { font-weight: 600; text-decoration: none; color: var(--fg); }
 td.title a:hover { color: var(--accent); text-decoration: underline; }
 td.title .co { color: var(--fg-2); }
@@ -293,7 +298,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
   ];
   const ACTIVE = new Set(['applied', 'oa', 'interview']);
   const LABEL = Object.fromEntries(STATUSES);
-  const SRC_LABEL = { simplify: 'Simplify', jobright: 'Jobright', watch: 'My watchlist', waterlooworks: 'WaterlooWorks' };
+  const SRC_LABEL = { simplify: 'Simplify', jobright: 'Jobright', watch: 'Company site', waterlooworks: 'WaterlooWorks' };
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ymd = (d) => d.toLocaleDateString('en-CA');  // YYYY-MM-DD in your time zone
@@ -553,8 +558,16 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     $('summary').innerHTML = `<span><b>${rows.length.toLocaleString()}</b> postings</span><span><b>${rows.filter(j => j.hasPay).length.toLocaleString()}</b> list pay</span><span><b>${rows.filter(j => Date.now() - j.ts < DAY).length}</b> posted in the last 24h</span><span><b>${fresh}</b> new since you last looked</span>${fresh ? '<button class="btn" id="markseen">Mark all seen</button>' : ''}`;
     $('empty').hidden = rows.length > 0;
     const showFit = !!(settings.resume || '').trim() || !!settings.keywords.trim();
+    // Two sections: jobs pulled straight from company career sites (the "watch" source)
+    // come first, then everything from the aggregator lists. Each keeps the chosen sort.
+    const isDirect = (j) => j.sources.includes('watch');
+    const direct = rows.filter(isDirect), agg = rows.filter(j => !isDirect(j));
+    const ordered = direct.concat(agg), firstAgg = direct.length;
+    const sectionRow = (label, n, note) => `<tr class="section"><td colspan="8"><span class="sec-name">${label}</span> <span class="sec-n">${n}</span> <span class="sec-note">${note}</span></td></tr>`;
     const html = [];
-    for (const j of rows.slice(0, state.shown)) {
+    ordered.slice(0, state.shown).forEach((j, i) => {
+      if (direct.length && i === 0) html.push(sectionRow('Straight from company sites', direct.length, 'polled direct, apply on the company page'));
+      if (agg.length && i === firstAgg) html.push(sectionRow('From job boards', agg.length, 'Simplify and WaterlooWorks, can lag a day or two'));
       const t = tracker[j.id];
       const open = state.open === j.id;
       const tracked = t && t.status !== 'saved';
@@ -568,7 +581,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
         <td class="fit fitcol"${showFit ? '' : ' hidden'}>${j.fit == null ? '' : j.fit + '%'}</td>
         <td><span class="chip">${esc(j.ats)}</span></td></tr>`);
       if (open) html.push(detailRow(j, t));
-    }
+    });
     $('rows').innerHTML = html.join('');
     const left = rows.length - state.shown;
     $('more').hidden = left <= 0;

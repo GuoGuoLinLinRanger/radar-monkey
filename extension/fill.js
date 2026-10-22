@@ -6,6 +6,11 @@
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const norm = (s) => String(s || '').toLowerCase().replace(/\s+/g, ' ').replace(/[*:?]+/g, '').trim();
   const GOOD = '2px solid #0f7b5f', TODO = '2px dashed #d08a00';
+  // Dropdowns/comboboxes we've already tried this page-load. Keyed by a stable field
+  // signature (not the DOM node), so a widget that re-renders or virtualizes as you scroll
+  // isn't re-opened every time. Auto-fill respects this; a manual Fill click ignores it.
+  const TRIED = new Set();
+  const sig = (el, lbl) => [el.tagName, el.type || '', el.name || '', el.id || '', norm(lbl).slice(0, 60)].join('|');
 
   // ---------- reading the page ----------
   function visible(el) {
@@ -174,6 +179,7 @@
     const P = data.profile || {};
     const answers = (data.answers || []).concat(Object.entries(data.learned || {}).map(([q, a]) => ({ q, a })));
     const overwrite = !!data.overwrite;
+    const auto = !!data.auto;
     const report = { filled: 0, needs: [], frame: location.host };
     const done = new Set();
 
@@ -195,16 +201,23 @@
       const desc = (label + ' ' + hints(el)).trim();
 
       if (t === 'file') {
-        if (data.resume && /resume|cv\b|curriculum/i.test(desc + ' ' + questionFor(el)) && !/cover/i.test(label) && !el.files.length) {
+        const fileDesc = desc + ' ' + questionFor(el);
+        const attach = async (doc, lbl) => {
           try {
-            const blob = await (await fetch(data.resume.dataUrl)).blob();
+            const blob = await (await fetch(doc.dataUrl)).blob();
             const dt = new DataTransfer();
-            dt.items.add(new File([blob], data.resume.name, { type: data.resume.type || blob.type }));
+            dt.items.add(new File([blob], doc.name, { type: doc.type || blob.type }));
             el.files = dt.files;
             el.dispatchEvent(new Event('input', { bubbles: true }));
             el.dispatchEvent(new Event('change', { bubbles: true }));
             report.filled++; mark(el.closest('div') || el, true);
-          } catch (e) { report.needs.push('Resume upload'); }
+          } catch (e) { report.needs.push(lbl + ' upload'); }
+        };
+        if (el.files.length) { continue; }                         // don't clobber a file already chosen
+        if (data.cover && /cover\s*letter|letter of (interest|intent)|\bcover\b/i.test(fileDesc)) {
+          await attach(data.cover, 'Cover letter');
+        } else if (data.resume && /resume|cv\b|curriculum|\bvitae\b/i.test(fileDesc) && !/cover/i.test(label)) {
+          await attach(data.resume, 'Resume');
         }
         continue;
       }
@@ -239,6 +252,7 @@
       }
 
       const combo = el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list';
+      if (auto && combo) { const k = sig(el, label); if (TRIED.has(k)) continue; TRIED.add(k); }
       const vals = alts(r.value);
       setValue(el, vals[0]);
       if (combo) {
@@ -252,6 +266,7 @@
     const buttons = [...document.querySelectorAll('button[aria-haspopup="listbox"], [role="button"][aria-haspopup="listbox"], div[role="combobox"]:not(:has(input))')].filter(visible);
     for (const b of buttons) {
       const label = labelFor(b) || questionFor(b);
+      if (auto) { const k = sig(b, label); if (TRIED.has(k)) continue; TRIED.add(k); }
       const current = norm(textOf(b));
       if (current && !/select one|select|choose/.test(current) && !overwrite) continue;
       const r = resolve(label + ' ' + hints(b), b);
