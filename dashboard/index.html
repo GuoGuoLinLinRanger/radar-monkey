@@ -154,6 +154,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     <nav class="pages" aria-label="Pages">
       <button data-page="intern">Intern<span class="n" id="n-intern"></span></button>
       <button data-page="newgrad">New grad<span class="n" id="n-newgrad"></span></button>
+      <button data-page="bigtech">Big tech<span class="n" id="n-bigtech"></span></button>
       <button data-page="tracker">My applications<span class="n" id="n-tracker"></span></button>
     </nav>
     <div class="meta"><span id="meta"></span><span class="sync" id="sync" title="Chrome extension not connected">Extension</span><button class="iconbtn" id="open-settings">Settings</button></div>
@@ -459,6 +460,40 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     for (const j of list) { const v = j[key]; for (const x of Array.isArray(v) ? v : [v]) if (x) c.set(x, (c.get(x) || 0) + 1); }
     return [...c.entries()].sort((a, b) => b[1] - a[1]);
   }
+  // "Big tech" page: a ranked view of early-career SWE/AI roles at the big names,
+  // US / Canada / remote, undergrad-eligible (no PhD-only). Uses the same job rows as the
+  // feed; the company list mirrors config.toml's watchlist plus the aggregator-only names.
+  const BIGTECH = ['google','deepmind','youtube','waymo','meta','facebook','instagram','apple','microsoft',
+    'netflix','amazon','aws','nvidia','salesforce','adobe','intel','tesla','linkedin','uber','lyft','airbnb',
+    'stripe','databricks','openai','anthropic','coinbase','robinhood','snowflake','pinterest','dropbox','figma',
+    'notion','ramp','palantir','roblox','reddit','discord','cloudflare','instacart','doordash','samsung',
+    'qualcomm','amd','ibm','oracle','bytedance','tiktok','spacex','scale ai','scaleai','brex','asana','gitlab','vercel','linear'];
+  const BIGTECH_RE = new RegExp('\\b(' + BIGTECH.map(b => b.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b', 'i');
+  const BT_SWE = /software|developer|engineer|\bswe\b|backend|front.?end|full.?stack|infrastructure|machine learning|artificial intelligence|data scien|data engineer|platform|\bsystems\b|firmware|embedded|compiler|\bsecurity\b|distributed/i;
+  const BT_NEG = /senior|staff|principal|director|\bmanager\b|\blead\b|ph\.?\s?d|doctoral|high.?school|\bii\b|\biii\b|\bsr\.?\b/i;
+  const FAANG = ['google','meta','facebook','apple','amazon','microsoft','netflix','nvidia'];
+  function bigtechOk(j) {
+    if (!BIGTECH_RE.test(j.company)) return false;
+    if (!(j.countries.includes('US') || j.countries.includes('CA') || j.remote_ok || j.work_model === 'Remote' || /remote/i.test(j.title))) return false;
+    if (!BT_SWE.test(j.title) || BT_NEG.test(j.title)) return false;
+    const degs = (j.degrees || []).join(' ').toLowerCase();
+    if (degs && !degs.includes('bachelor')) return false;   // Master's/PhD-only: not undergrad
+    return true;
+  }
+  function btScore(j) {
+    let s = 0;
+    const blob = (j.title + ' ' + (j.terms || []).join(' ')).toLowerCase();
+    if (blob.includes('2027')) s += 4;
+    if (blob.includes('2026') && !blob.includes('2027')) s -= 3;
+    if (j.category === 'Software' || j.category === 'AI/ML/Data') s += 2;
+    if (FAANG.some(f => j.company.toLowerCase().includes(f))) s += 2;
+    if (j.sources.includes('watch')) s += 2;
+    const age = (Date.now() - j.ts) / DAY;
+    s += age <= 14 ? 2 : age <= 30 ? 1 : 0;
+    if (j.hasPay) s += 1;
+    return s;
+  }
+
   function filtered() {
     const f = state.f;
     const words = f.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -470,13 +505,14 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     const country = S(f.country), model = S(f.model), terms = S(f.terms), cats = S(f.cats), ats = S(f.ats), src = S(f.src), flags = S(f.hideFlags);
     const seenTs = Date.parse(seenAt) || 0;
     const out = jobs.filter(j => {
-      if (j.kind !== state.page) return false;
+      if (state.page === 'bigtech') { if (!bigtechOk(j)) return false; }
+      else if (j.kind !== state.page) return false;
       if (!f.showclosed && !j.active) return false;
       if (!f.showhidden && hidden.has(j.id)) return false;
       const t = tracker[j.id];
       if (f.hideapplied && t && t.status !== 'saved') return false;
       if (f.onlysaved && !(t && t.status === 'saved')) return false;
-      if (country.size && !j.countries.some(c => country.has(c))) return false;
+      if (country.size && !j.countries.some(c => country.has(c)) && !(j.remote_ok || j.work_model === 'Remote')) return false;
       if (model.size && !model.has(j.work_model) && !(model.has('Remote') && j.remote_ok)) return false;
       if (terms.size && !j.terms.some(x => terms.has(x))) return false;
       if (cats.size && !cats.has(j.category)) return false;
@@ -504,6 +540,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
       company: (a, b) => a.company.localeCompare(b.company) || (b.ts - a.ts),
       fit: (a, b) => ((b.fit || 0) - (a.fit || 0)) || (b.ts - a.ts),
     }[f.sort] || ((a, b) => b.ts - a.ts);
+    if (state.page === 'bigtech') return out.sort((a, b) => (btScore(b) - btScore(a)) || (b.ts - a.ts));
     return out.sort(cmp);
   }
   function activeFilterCount() {
@@ -517,7 +554,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     $(el).innerHTML = pairs.map(([v, c]) => `<button data-k="${key}" data-v="${esc(v)}" aria-pressed="${on.has(v)}">${esc(labelFn ? labelFn(v) : v)}<span class="c">${c}</span></button>`).join('') || '<span class="hint">None in this list</span>';
   }
   function renderFilters() {
-    const pool = jobs.filter(j => j.kind === state.page && j.active);
+    const pool = jobs.filter(j => (state.page === 'bigtech' ? bigtechOk(j) : j.kind === state.page) && j.active);
     renderChips('f-terms', 'terms', counts(pool, 'terms').slice(0, 10));
     renderChips('f-cats', 'cats', counts(pool, 'category'));
     renderChips('f-ats', 'ats', counts(pool, 'ats').slice(0, 12));
@@ -541,6 +578,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     const live = jobs.filter(j => j.active);
     $('n-intern').textContent = live.filter(j => j.kind === 'intern').length.toLocaleString();
     $('n-newgrad').textContent = live.filter(j => j.kind === 'newgrad').length.toLocaleString();
+    $('n-bigtech').textContent = live.filter(bigtechOk).length.toLocaleString();
     $('n-tracker').textContent = Object.values(tracker).filter(e => ACTIVE.has(e.status)).length || '';
     if (page === 'tracker') return renderTracker();
 
