@@ -176,8 +176,8 @@
 
   // ---------- main ----------
   window.__rmRun = async function (data) {
-    const P = data.profile || {};
-    const answers = (data.answers || []).concat(Object.entries(data.learned || {}).map(([q, a]) => ({ q, a })));
+    const P = Object.assign({}, window.RM_FIELDS.DEFAULTS || {}, data.profile || {});
+    const answers = (data.answers || []).concat(Object.entries(data.learned || {}).map(([q, a]) => ({ q, a }))).concat(window.RM_FIELDS.ANSWERS || []);
     const overwrite = !!data.overwrite;
     const auto = !!data.auto;
     const report = { filled: 0, needs: [], frame: location.host };

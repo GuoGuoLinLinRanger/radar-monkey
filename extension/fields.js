@@ -35,6 +35,12 @@
     ['over_18', 'At least 18?', 'Yes', 'Work eligibility'],
     ['how_heard', 'How did you hear about us', 'LinkedIn', 'Common questions'],
     ['previously_worked', 'Worked at this company before?', 'No', 'Common questions'],
+    ['ai_experience', 'Experience with AI / ML?', 'Yes', 'Common questions'],
+    ['coop_enrolled', 'Enrolled in a co-op program?', 'Yes', 'Common questions'],
+    ['eight_month', 'Open to an 8-month co-op?', 'Yes', 'Common questions', 'Waterloo offers 8-month streams; set No to only take 4-month terms'],
+    ['us_served', 'US military service (you or spouse)?', 'No', 'Work eligibility'],
+    ['clearance', 'US security clearance', "I do not have an active US government security clearance | No", 'Work eligibility', 'Also answers a yes/no "do you hold a clearance?" with No'],
+    ['willing_clearance', 'Willing to obtain US clearance?', 'No', 'Work eligibility'],
     ['gender', 'Gender', 'Male', 'Voluntary (EEO)', 'These are optional on every form. Leave as "' + DECLINE + '" to skip.'],
     ['hispanic', 'Hispanic or Latino', 'No', 'Voluntary (EEO)'],
     ['race', 'Race / ethnicity', 'Chinese | Asian', 'Voluntary (EEO)', 'Most specific first, separated by "|", e.g. Chinese | Asian. It tries each until a form option matches.'],
@@ -62,6 +68,12 @@
     ['city', /\bcity\b|\btown\b/],
     ['province_state', /province|\bstate\b|region/],
     ['country', /\bcountry\b|location.*country/],
+    ['ai_experience', /experience.{0,30}(artificial intelligence|machine learning|\bai\b|\bml\b)|familiar.{0,30}(artificial intelligence|\bai\b)/],
+    ['willing_clearance', /willing to (obtain|get|pursue).{0,30}clearance|able to obtain.{0,30}clearance/],
+    ['clearance', /security clearance|government clearance|active .{0,20}clearance|\bclearance\b/],
+    ['us_served', /\bserved\b|service member|national guard|\breserves\b|military service/],
+    ['coop_enrolled', /enrolled in (a )?co-?op|currently.{0,20}co-?op program|part of (a )?co-?op/],
+    ['eight_month', /8[-\s]?month|eight[-\s]?month|(longer|extended) (internship|co-?op)/],
     ['school', /school|university|college|institution/],
     ['degree', /\bdegree\b|level of education|education level/],
     ['major', /major|field of study|discipline|program of study|area of study|concentration/],
@@ -82,5 +94,13 @@
     ['disability', /disabilit/],
   ];
 
-  window.RM_FIELDS = { PROFILE, RULES, DECLINE };
+  const DEFAULTS = Object.fromEntries(PROFILE.map(p => [p[0], p[2]]));
+
+  // Built-in fallback answers for recurring free-text questions. Answers you set on the
+  // options page (and remembered answers) always win over these.
+  const ANSWERS = [
+    { q: '/c\\+\\+|c or c\\b|c\\/c\\+\\+|c programming/i', a: "At BusPlanner I built production features in C++ and C# on an ASP.NET and SQL stack, and on the Midnight Sun solar car team I write and debug embedded C on real hardware with GDB. I'm comfortable designing in both, from memory and concurrency up to clean object oriented structure." },
+  ];
+
+  window.RM_FIELDS = { PROFILE, RULES, DEFAULTS, ANSWERS, DECLINE };
 })();
