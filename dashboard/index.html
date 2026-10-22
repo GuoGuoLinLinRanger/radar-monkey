@@ -194,9 +194,9 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
         <h3>Visa and citizenship</h3>
         <select id="spons" style="width:100%">
           <option value="any">Show all</option>
-          <option value="nocitizen">Hide "US citizens only"</option>
-          <option value="noblock">Hide "citizens only" and "no sponsorship"</option>
-          <option value="yes">Only "offers sponsorship"</option>
+          <option value="nocitizen">Hide US-citizen-only (needing a visa is fine)</option>
+          <option value="noblock">Only roles a visa can take (also hide "no sponsorship")</option>
+          <option value="yes">Only roles that say they sponsor visas</option>
         </select>
       </div>
       <div>
@@ -314,12 +314,12 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
   };
   const DEFAULT_F = {
     q: '', country: ['US', 'CA'], model: [], posted: 0, sort: 'newest', terms: [], cats: ['Software', 'AI/ML/Data'], ats: [], src: [],
-    spons: 'any', hideFlags: ['senior', 'phd', 'masters', 'coop'], minpay: 0, haspay: false, onlynew: false, onlysaved: false,
+    spons: 'nocitizen', hideFlags: ['senior', 'phd', 'masters', 'coop'], minpay: 0, haspay: false, onlynew: false, onlysaved: false,
     hideapplied: true, showhidden: false, showclosed: false, blocked: '', minfit: 0,
   };
   const clone = (o) => JSON.parse(JSON.stringify(o));
   // Bump when DEFAULT_F changes so the new default scope re-applies over stale saved filters.
-  const FILTERS_V = 3;
+  const FILTERS_V = 4;
   let storedF = store.get('filters', {});
   if (store.get('filtersV', 0) < FILTERS_V) { storedF = {}; store.set('filtersV', FILTERS_V); }
   const state = { page: 'intern', f: Object.assign(clone(DEFAULT_F), storedF), open: null, shown: PAGE_SIZE, tstatus: '', tq: '' };
