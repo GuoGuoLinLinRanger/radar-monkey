@@ -25,7 +25,7 @@
     ['major', 'Major / program', '', 'School'],
     ['gpa', 'GPA', '', 'School', 'Leave blank to skip GPA questions'],
     ['grad_month', 'Graduation month', 'May', 'School'],
-    ['grad_year', 'Graduation year', '', 'School'],
+    ['grad_year', 'Graduation year', '2028', 'School'],
     ['start_available', 'Earliest start date', '', 'School', 'e.g. May 2027'],
     ['work_auth_us', 'Allowed to work in the US?', 'No', 'Work eligibility'],
     ['need_sponsor_us', 'Need visa sponsorship for the US?', 'Yes', 'Work eligibility'],
