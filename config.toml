@@ -233,25 +233,37 @@ countries = ["US", "CA"]
 any_words = ["software", "swe", "developer", "backend", "frontend", "full stack", "infrastructure",
              "machine learning", "ml ", "ai ", "artificial intelligence", "deep learning",
              "data scien", "data engineer", "nlp", "computer vision", "research"]
-none_words = ["senior", "phd", "sales", "co-op", "coop", "master"]
+none_words = ["senior", "staff", "phd", "ph.d", "doctoral", "doctorate", "sales", "co-op", "coop", "master"]
 hide_citizen_only = true
 
+# Direct-from-company big tech. Only US/Canada, early-career SWE/AI, no PhD/senior.
 [[alerts]]
-name = "Watchlist companies, any role"
+name = "Big tech from company sites (US/CA, early career)"
 sources = ["watch"]
+countries = ["US", "CA"]
+any_words = ["software", "developer", "engineer", "swe", "backend", "frontend", "full stack",
+             "infrastructure", "machine learning", "artificial intelligence", "deep learning",
+             "data scien", "data engineer", "nlp", "computer vision", "platform", "systems",
+             "research scien", "applied scien", "firmware", "embedded"]
+none_words = ["senior", "staff", "principal", "director", "manager", "lead", "phd", "ph.d",
+              "doctoral", "doctorate", "masters"]
+hide_citizen_only = true
 
 # Ping me the moment a big tech company posts a relevant early-career role. Covers the
 # ones we can't pull from their own site (Google, Meta, Apple, Microsoft) — those arrive
 # via Simplify, usually a day or two behind — plus the ones we do pull direct. Needs the
 # RADAR_DISCORD_WEBHOOK repo secret set, or it just prints the count and sends nothing.
+# Big tech we can't pull direct (Google, Meta, Apple, Microsoft, ...). These arrive via
+# Simplify. Watch-source companies are covered by the alert above, so they're not repeated
+# here (avoids double pings).
 [[alerts]]
-name = "Big tech, SWE/AI early career (US/CA)"
+name = "Big tech via Simplify (US/CA, early career)"
 countries = ["US", "CA"]
 companies = ["Google", "Google DeepMind", "YouTube", "Waymo", "Meta", "Facebook", "Apple",
-             "Microsoft", "Netflix", "Amazon", "Amazon Web Services", "AWS", "NVIDIA", "Nvidia",
-             "Salesforce", "Adobe", "Intel", "Stripe", "Databricks", "OpenAI", "Anthropic"]
+             "Microsoft", "Tesla", "TikTok", "LinkedIn", "Uber", "Qualcomm", "AMD", "Oracle", "IBM", "ByteDance"]
 any_words = ["software", "developer", "engineer", "swe", "backend", "frontend", "full stack",
              "infrastructure", "machine learning", "artificial intelligence", "data scien",
              "data engineer", "platform", "systems", "research scien", "applied scien"]
-none_words = ["senior", "staff", "principal", "director", "manager", "lead", "phd"]
+none_words = ["senior", "staff", "principal", "director", "manager", "lead", "phd", "ph.d",
+              "doctoral", "doctorate", "masters"]
 hide_citizen_only = true
