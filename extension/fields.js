@@ -12,6 +12,7 @@
     ['email', 'Email', '', 'You'],
     ['phone', 'Phone', '', 'You', 'Digits only works best, e.g. 5195551234'],
     ['phone_country', 'Phone country code', '+1', 'You'],
+    ['phone_type', 'Phone type', 'Mobile', 'You'],
     ['address', 'Street address', '', 'Address'],
     ['city', 'City', '', 'Address'],
     ['province_state', 'Province or state', '', 'Address', 'Full name works best on dropdowns, e.g. Ontario'],
@@ -31,6 +32,8 @@
     ['need_sponsor_us', 'Need visa sponsorship for the US?', 'Yes', 'Work eligibility'],
     ['work_auth_ca', 'Allowed to work in Canada?', 'Yes', 'Work eligibility'],
     ['need_sponsor_ca', 'Need sponsorship for Canada?', 'No', 'Work eligibility'],
+    ['citizenship_us', 'US citizen or permanent resident?', 'No', 'Work eligibility'],
+    ['citizenship_ca', 'Canadian citizen or permanent resident?', 'Yes', 'Work eligibility'],
     ['relocate', 'Willing to relocate?', 'Yes', 'Work eligibility'],
     ['over_18', 'At least 18?', 'Yes', 'Work eligibility'],
     ['how_heard', 'How did you hear about us', 'LinkedIn', 'Common questions'],
@@ -52,6 +55,7 @@
   const RULES = [
     ['email', /e-?mail/],
     ['phone_country', /country (phone )?code|phone.*country|dialing code|phone code/],
+    ['phone_type', /phone (type|device)|device type|type of phone/],
     ['phone_ext', /extension/],
     ['phone', /phone|mobile|cell/],
     ['preferred_name', /preferred|nick ?name/],
@@ -81,6 +85,8 @@
     ['grad', /graduat/],
     ['start_available', /available to start|available start|earliest (possible )?start|when can you start|\bavailability\b|start date(?! month| year)/],
     ['sponsor', /sponsor/],
+    ['citizenship_us', /u\.?s\.?\s*citizen|united states citizen|citizen of the u|permanent resident of the u|\bgreen card\b/],
+    ['citizenship_ca', /canadian citizen|citizen of canada|canadian permanent resident|citizen or permanent resident of canada/],
     ['work_auth', /authori[sz]ed|legally (eligible|able|permitted|entitled)|eligible to work|right to work|work permit|work visa/],
     ['relocate', /relocat/],
     ['over_18', /18 years|age of 18|at least 18|over 18/],
@@ -102,5 +108,16 @@
     { q: '/c\\+\\+|c or c\\b|c\\/c\\+\\+|c programming/i', a: "At BusPlanner I built production features in C++ and C# on an ASP.NET and SQL stack, and on the Midnight Sun solar car team I write and debug embedded C on real hardware with GDB. I'm comfortable designing in both, from memory and concurrency up to clean object oriented structure." },
   ];
 
-  window.RM_FIELDS = { PROFILE, RULES, DEFAULTS, ANSWERS, DECLINE };
+  // Your real roles, newest first — used to fill repeatable Work Experience blocks.
+  const WORK_HISTORY = [
+    { company: 'BusPlanner', title: 'Software Engineer', location: 'Waterloo, ON', start_month: 'May', start_year: '2026', end_month: 'August', end_year: '2026', current: false, description: 'Shipped production C#/ASP.NET/SQL features used by 100+ school districts, cut key page-load times ~55%, and rebuilt the team CI/CD on GitHub Actions.' },
+    { company: 'University of Waterloo Computer Science Club', title: 'Software Engineer', location: 'Waterloo, ON', start_month: 'October', start_year: '2025', end_month: '', end_year: '', current: true, description: 'Built an LLM-powered event-processing pipeline, cut React rendering overhead ~40%, and raised platform uptime to ~99.9% for 3,000+ students.' },
+    { company: 'Midnight Sun Solar Car Team', title: 'Software Developer', location: 'Waterloo, ON', start_month: 'August', start_year: '2025', end_month: '', end_year: '', current: true, description: 'Took firmware test coverage from 0% to ~70% across ~12 modules and sped up debugging ~4x with simulated hardware interfaces and GDB.' },
+  ];
+  // Education — used to fill repeatable Education blocks. Falls back to your profile fields.
+  const EDUCATION = [
+    { school: 'University of Waterloo', degree: "Bachelor's", field: 'Computer Science', gpa: '', start_year: '2024', end_year: '2028' },
+  ];
+
+  window.RM_FIELDS = { PROFILE, RULES, DEFAULTS, ANSWERS, WORK_HISTORY, EDUCATION, DECLINE };
 })();

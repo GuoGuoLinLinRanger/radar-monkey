@@ -164,7 +164,10 @@
     const wants = Array.isArray(want) ? want : alts(want);
     for (let i = 0; i < 10; i++) {
       await sleep(120);
-      const opts = [...document.querySelectorAll('[role="option"], [data-automation-id="promptOption"]')].filter(visible);
+      // "Shown" rather than visible(): dropdown options can report 0 width mid-animation or
+      // when shrink-wrapped, which visible() (width>0 && height>0) wrongly rejected.
+      const opts = [...document.querySelectorAll('[role="option"], [data-automation-id="promptOption"]')]
+        .filter(o => o.offsetParent !== null && o.getBoundingClientRect().height > 0);
       if (opts.length) {
         const hit = bestAny(opts, wants, textOf);
         if (hit) { clickLike(hit); await sleep(200); return true; }
@@ -172,6 +175,99 @@
       }
     }
     return false;
+  }
+
+  // ---------- repeatable sections: work experience + education ----------
+  // Fills one field of any widget type (text, select, native or custom dropdown, checkbox,
+  // combobox/typeahead). Returns true if it put a value in.
+  async function fillField(el, value, overwrite) {
+    if (!el || value == null || value === '') return false;
+    const vals = alts(value);
+    const t = (el.type || '').toLowerCase();
+    if (t === 'checkbox') {
+      const want = value === true || /^(yes|true|1|checked)$/i.test(String(value));
+      if (want !== el.checked) clickLike(el);
+      mark(el, true); return true;
+    }
+    if (el.tagName === 'SELECT') {
+      const has = el.selectedIndex > 0 && !/select|choose/.test(norm(el.options[el.selectedIndex].text));
+      if (has && !overwrite) return false;
+      const hit = bestAny([...el.options], vals, o => o.text);
+      if (hit) { setValue(el, hit.value); mark(el, true); return true; }
+      return false;
+    }
+    if (el.tagName === 'BUTTON' || el.getAttribute('aria-haspopup') === 'listbox' || el.getAttribute('role') === 'button') {
+      const cur = norm(textOf(el));
+      if (cur && !/select one|select|choose/.test(cur) && !overwrite) return false;
+      clickLike(el);
+      const ok = await pickFromListbox(vals);
+      if (!ok) document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      if (ok) mark(el, true);
+      return ok;
+    }
+    if (el.value && !overwrite) return false;
+    const combo = el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list';
+    setValue(el, vals[0]);
+    if (combo) { const ok = await pickFromListbox(vals); if (!ok) el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); }
+    mark(el, true); return true;
+  }
+  // Smallest ancestor of a block's anchor field (company/school) that also holds a sibling
+  // field (title/degree) — i.e. the one repeatable entry's container.
+  function blockOf(anchorEl, siblingRe) {
+    let p = anchorEl.parentElement;
+    for (let i = 0; i < 7 && p; i++, p = p.parentElement) {
+      const flds = [...p.querySelectorAll('input,select,button,textarea')];
+      if (flds.some(x => x !== anchorEl && siblingRe.test(norm(labelFor(x))))) return p;
+    }
+    return anchorEl.closest('fieldset,section,div') || anchorEl.parentElement || document.body;
+  }
+  async function fillEmployment(fields, jobs, done, overwrite, auto, report) {
+    const isCompany = el => { const d = norm(labelFor(el) + ' ' + hints(el)); return /\bcompany\b|\bemployer\b/.test(d) && !/parent|guardian|reference|emergenc|school|university/.test(d); };
+    const anchors = fields.filter(el => !done.has(el) && el.tagName === 'INPUT' && ['text', ''].includes((el.type || 'text').toLowerCase()) && isCompany(el));
+    let idx = 0;
+    for (const cEl of anchors) {
+      if (done.has(cEl)) continue;
+      const job = jobs[idx++]; if (!job) break;
+      const asig = 'emp|' + sig(cEl, labelFor(cEl));
+      if (auto && TRIED.has(asig)) { done.add(cEl); continue; }
+      if (auto) TRIED.add(asig);
+      const box = blockOf(cEl, /\btitle\b|\bposition\b/);
+      const pick = re => [...box.querySelectorAll('input,select,button,textarea')].find(x => !done.has(x) && visible(x) && re.test(norm(labelFor(x) + ' ' + hints(x))));
+      const put = async (el, val) => { if (el) { if (await fillField(el, val, overwrite)) report.filled++; done.add(el); } };
+      await put(cEl, job.company);
+      await put(pick(/\btitle\b|\bposition\b/), job.title);
+      await put(pick(/\blocation\b|\bcity\b/), job.location);
+      await put(pick(/start.*month|from.*month/), job.start_month);
+      await put(pick(/start.*year|from.*year/), job.start_year);
+      const curEl = pick(/current(ly)? (role|position|employer)|currently work|present role|i currently work|\bcurrent role\b/);
+      if (job.current && curEl && curEl.type === 'checkbox') { await put(curEl, 'yes'); }
+      else {
+        await put(pick(/end.*month|to.*month/), job.end_month);
+        await put(pick(/end.*year|to.*year/), job.end_year);
+      }
+      await put(pick(/description|responsibilit|duties|summary|accomplish/), job.description);
+    }
+  }
+  async function fillEducation(fields, edus, done, overwrite, auto, report) {
+    const isSchool = el => { const d = norm(labelFor(el) + ' ' + hints(el)); return /\bschool\b|\buniversity\b|\binstitution\b|\bcollege\b/.test(d) && !/high school/.test(d); };
+    const anchors = fields.filter(el => !done.has(el) && (el.tagName === 'SELECT' || (el.tagName === 'INPUT' && ['text', ''].includes((el.type || 'text').toLowerCase()))) && isSchool(el));
+    let idx = 0;
+    for (const sEl of anchors) {
+      if (done.has(sEl)) continue;
+      const edu = edus[idx++]; if (!edu) break;
+      const asig = 'edu|' + sig(sEl, labelFor(sEl));
+      if (auto && TRIED.has(asig)) { done.add(sEl); continue; }
+      if (auto) TRIED.add(asig);
+      const box = blockOf(sEl, /\bdegree\b|field of study|discipline|\bmajor\b/);
+      const pick = re => [...box.querySelectorAll('input,select,button,textarea')].find(x => !done.has(x) && visible(x) && re.test(norm(labelFor(x) + ' ' + hints(x))));
+      const put = async (el, val) => { if (el) { if (await fillField(el, val, overwrite)) report.filled++; done.add(el); } };
+      await put(sEl, edu.school);
+      await put(pick(/\bdegree\b|level of education|education level/), edu.degree);
+      await put(pick(/field of study|\bmajor\b|discipline|concentration|program of study|area of study/), edu.field);
+      await put(pick(/\bgpa\b|grade point|overall result|\bgrade\b/), edu.gpa);
+      await put(pick(/start.*year|from.*year|year started/), edu.start_year);
+      await put(pick(/end.*year|to.*year|graduat|year.*(completed|completion)/), edu.end_year);
+    }
   }
 
   // ---------- main ----------
@@ -191,8 +287,16 @@
       return { key, value: valueFor(key, desc, el, P) };
     };
 
-    // 1) plain inputs, textareas, selects
+    // 0) repeatable Work Experience / Education blocks, filled from your history + profile.
     const fields = [...document.querySelectorAll('input, textarea, select')].filter(visible);
+    const workHistory = (data.workHistory && data.workHistory.length) ? data.workHistory : (window.RM_FIELDS.WORK_HISTORY || []);
+    const education = (data.education && data.education.length) ? data.education
+      : (P.school ? [{ school: P.school, degree: P.degree, field: P.major, gpa: P.gpa, start_year: String((parseInt(P.grad_year) || 2028) - 4), end_year: P.grad_year }]
+                  : (window.RM_FIELDS.EDUCATION || []));
+    if (workHistory.length) await fillEmployment(fields, workHistory, done, overwrite, auto, report);
+    if (education.length) await fillEducation(fields, education, done, overwrite, auto, report);
+
+    // 1) plain inputs, textareas, selects
     for (const el of fields) {
       if (done.has(el)) continue;
       const t = (el.type || '').toLowerCase();
@@ -274,6 +378,7 @@
     // 2) custom dropdown buttons (Workday and friends)
     const buttons = [...document.querySelectorAll('button[aria-haspopup="listbox"], [role="button"][aria-haspopup="listbox"], div[role="combobox"]:not(:has(input))')].filter(visible);
     for (const b of buttons) {
+      if (done.has(b)) continue;
       const label = labelFor(b) || questionFor(b);
       if (auto) { const k = sig(b, label); if (TRIED.has(k)) continue; TRIED.add(k); }
       const current = norm(textOf(b));
