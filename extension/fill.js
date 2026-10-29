@@ -276,6 +276,17 @@
     }
   }
 
+  // Ask the background worker to write a tailored answer for a posting-specific question.
+  async function genAnswer(question) {
+    try {
+      if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) return null;
+      const main = document.querySelector('main, [role="main"], form') || document.body;
+      const pageText = (main.innerText || document.body.innerText || '').replace(/\n{3,}/g, '\n\n').slice(0, 6000);
+      const resp = await chrome.runtime.sendMessage({ type: 'generate', question, pageText, title: document.title });
+      return resp && resp.text ? resp.text : null;
+    } catch (e) { return null; }
+  }
+
   // ---------- main ----------
   window.__rmRun = async function (data) {
     // Never touch sign-in / create-account forms: a visible password field means this is an
@@ -374,6 +385,16 @@
         const hit = bestAny([...el.options], alts(r.value), o => o.text);
         if (hit) { setValue(el, hit.value); report.filled++; mark(el, true); }
         else { report.needs.push(label.slice(0, 80)); mark(el, false); }
+        continue;
+      }
+
+      // Posting-specific free text set to [[generate]]: write it from the page (manual Fill only,
+      // so auto-fill never spends API credits on its own). Left highlighted for you to review.
+      if (/^\s*\[\[generate\]\]\s*$/i.test(String(r.value))) {
+        if (auto) { if (isRequired(el, label)) report.needs.push(label.slice(0, 80)); continue; }
+        const gen = await genAnswer(label || questionFor(el) || desc);
+        if (gen) { setValue(el, gen); try { el.style.outline = '2px solid #6d5ae0'; el.style.outlineOffset = '1px'; el.title = 'Generated — review before submitting'; } catch (e) {} report.filled++; }
+        else { report.needs.push((label || 'answer to generate').slice(0, 80)); mark(el, false); }
         continue;
       }
 

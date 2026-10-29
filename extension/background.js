@@ -86,12 +86,33 @@ async function logApplied(tabId, status) {
   return e;
 }
 
+// Writes a tailored answer to a posting-specific question (e.g. "Why this company?") from the
+// page's own text + your "about you" note, using your Anthropic key. Called by fill.js when an
+// answer is set to [[generate]]. Returns '' if no key, on any error, so the field just stays empty.
+async function generateAnswer(msg) {
+  const { apiKey = '', genContext = '' } = await chrome.storage.local.get(['apiKey', 'genContext']);
+  if (!apiKey) return '';
+  const system = 'You write short, specific, genuinely human answers to job-application questions, in the applicant\'s own voice. Rules: first person; concrete and specific to this company and role using the posting text; 3 to 5 sentences; confident but not boastful; plain everyday language. Never use em dashes. Avoid cliches like "I am passionate", "fast-paced environment", "I thrive", "excited for the opportunity". Output only the answer text, nothing else.';
+  const user = `QUESTION:\n${msg.question}\n\nABOUT THE APPLICANT:\n${genContext || '(none provided)'}\n\nJOB POSTING / PAGE CONTEXT:\n${(msg.pageText || '').slice(0, 5000)}`;
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-5-5', max_tokens: 600, system, messages: [{ role: 'user', content: user }] }),
+    });
+    if (!r.ok) return '';
+    const d = await r.json();
+    return ((d.content && d.content[0] && d.content[0].text) || '').trim();
+  } catch (e) { return ''; }
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
   (async () => {
     const tab = await activeTab();
     try {
       if (msg.type === 'fill') reply({ ok: true, ...(await fill(tab.id)) });
       else if (msg.type === 'learn') reply({ ok: true, count: await learn(tab.id) });
+      else if (msg.type === 'generate') reply({ ok: true, text: await generateAnswer(msg) });
       else if (msg.type === 'log') reply({ ok: true, entry: await logApplied(tab.id, msg.status || 'applied') });
     } catch (e) {
       reply({ ok: false, error: String(e && e.message || e) });
