@@ -91,6 +91,11 @@
       }
       case 'phone': return P.phone;
       case 'phone_ext': case 'middle_name': case 'address2': return '';
+      case 'postal': {
+        // Canadian postal codes want the middle space (A1A 1A1); normalize whatever is stored.
+        const v = (P.postal || '').replace(/\s+/g, '').toUpperCase();
+        return /^[A-Z]\d[A-Z]\d[A-Z]\d$/.test(v) ? v.slice(0, 3) + ' ' + v.slice(3) : (P.postal || '');
+      }
       default: return P[key] || '';
     }
   }
@@ -164,10 +169,11 @@
     const wants = Array.isArray(want) ? want : alts(want);
     for (let i = 0; i < 10; i++) {
       await sleep(120);
-      // "Shown" rather than visible(): dropdown options can report 0 width mid-animation or
-      // when shrink-wrapped, which visible() (width>0 && height>0) wrongly rejected.
+      // "Shown" rather than visible(): dropdown options can report 0 width (shrink-wrapped)
+      // and live in a position:fixed popup (offsetParent null) — both of which the old checks
+      // wrongly rejected. Rely on real height + computed display/visibility only.
       const opts = [...document.querySelectorAll('[role="option"], [data-automation-id="promptOption"]')]
-        .filter(o => o.offsetParent !== null && o.getBoundingClientRect().height > 0);
+        .filter(o => { const cs = getComputedStyle(o); return cs.display !== 'none' && cs.visibility !== 'hidden' && o.getBoundingClientRect().height > 1; });
       if (opts.length) {
         const hit = bestAny(opts, wants, textOf);
         if (hit) { clickLike(hit); await sleep(200); return true; }
