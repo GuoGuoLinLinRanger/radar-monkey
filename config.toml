@@ -226,27 +226,23 @@ domain = "netflix.com"
 # ---------- Alerts (Discord) ----------
 # Set a repo secret called RADAR_DISCORD_WEBHOOK to get pinged about NEW matches.
 # Every field is optional. Words match the title (case does not matter).
-[[alerts]]
-name = "SWE / AI-ML intern, US or Canada"
-kind = "intern"
-countries = ["US", "CA"]
-any_words = ["software", "swe", "developer", "backend", "frontend", "full stack", "infrastructure",
-             "machine learning", "ml ", "ai ", "artificial intelligence", "deep learning",
-             "data scien", "data engineer", "nlp", "computer vision", "research"]
-none_words = ["senior", "staff", "phd", "ph.d", "doctoral", "doctorate", "sales", "co-op", "coop", "master"]
-hide_citizen_only = true
+# (Removed the old broad "any SWE/AI intern in US/CA" alert: it had no company filter, so it
+# pinged about random companies like Subtotal, T-Mobile and Valmont. The two alerts below are
+# scoped to big tech only, and exclude data-science / analytics / research / insurance roles.)
 
-# Direct-from-company big tech. Only US/Canada, early-career SWE/AI, no PhD/senior.
+# Software-engineering keywords to match, and role types to never ping about. Shared by both
+# big-tech alerts below. Co-op is intentionally NOT excluded — those are wanted.
+# Direct-from-company big tech. US/Canada, early-career SWE/AI engineering.
 [[alerts]]
 name = "Big tech from company sites (US/CA, early career)"
 sources = ["watch"]
 countries = ["US", "CA"]
 any_words = ["software", "developer", "engineer", "swe", "backend", "frontend", "full stack",
-             "infrastructure", "machine learning", "artificial intelligence", "deep learning",
-             "data scien", "data engineer", "nlp", "computer vision", "platform", "systems",
-             "research scien", "applied scien", "firmware", "embedded"]
+             "infrastructure", "machine learning", "artificial intelligence", "ml engineer",
+             "ai engineer", "platform", "systems", "firmware", "embedded", "compiler"]
 none_words = ["senior", "staff", "principal", "director", "manager", "lead", "phd", "ph.d",
-              "doctoral", "doctorate", "masters"]
+              "doctoral", "doctorate", "masters", "data scien", "data analy", "data engineer",
+              "analytics", "research", "insurance", "actuar"]
 hide_citizen_only = true
 
 # Ping me the moment a big tech company posts a relevant early-career role. Covers the
@@ -262,8 +258,9 @@ countries = ["US", "CA"]
 companies = ["Google", "Google DeepMind", "YouTube", "Waymo", "Meta", "Facebook", "Apple",
              "Microsoft", "Tesla", "TikTok", "LinkedIn", "Uber", "Qualcomm", "AMD", "Oracle", "IBM", "ByteDance"]
 any_words = ["software", "developer", "engineer", "swe", "backend", "frontend", "full stack",
-             "infrastructure", "machine learning", "artificial intelligence", "data scien",
-             "data engineer", "platform", "systems", "research scien", "applied scien"]
+             "infrastructure", "machine learning", "artificial intelligence", "ml engineer",
+             "ai engineer", "platform", "systems", "firmware", "embedded", "compiler"]
 none_words = ["senior", "staff", "principal", "director", "manager", "lead", "phd", "ph.d",
-              "doctoral", "doctorate", "masters"]
+              "doctoral", "doctorate", "masters", "data scien", "data analy", "data engineer",
+              "analytics", "research", "insurance", "actuar"]
 hide_citizen_only = true
