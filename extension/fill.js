@@ -272,6 +272,12 @@
 
   // ---------- main ----------
   window.__rmRun = async function (data) {
+    // Never touch sign-in / create-account forms: a visible password field means this is an
+    // auth step (yours to complete with your password manager), not a job application. This
+    // also stops auto-fill from interfering with Workday's "Create Account" page.
+    if ([...document.querySelectorAll('input[type="password"]')].some(visible)) {
+      return { filled: 0, needs: [], frame: location.host, skipped: 'auth' };
+    }
     const P = Object.assign({}, window.RM_FIELDS.DEFAULTS || {}, data.profile || {});
     const answers = (data.answers || []).concat(Object.entries(data.learned || {}).map(([q, a]) => ({ q, a }))).concat(window.RM_FIELDS.ANSWERS || []);
     const overwrite = !!data.overwrite;
