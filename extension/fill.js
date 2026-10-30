@@ -183,6 +183,33 @@
     return false;
   }
 
+  // Fill a combobox / react-select input (Greenhouse, Lever, Ashby use react-select). Setting
+  // the value alone does NOT open react-select's menu, so: open the control, type to filter,
+  // then click the matching option. Avoids setValue() here because its blur closes the menu.
+  async function fillCombobox(el, vals) {
+    const control = el.closest('.select__control') || el.parentElement;
+    try { el.focus({ preventScroll: true }); } catch (e) {}
+    if (control) {
+      control.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+      control.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    }
+    // Type character by character so async, search-backed selects (e.g. a school list) fire
+    // their lookup — a single programmatic value-set doesn't trigger it.
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    const text = String(vals[0] || '');
+    for (let k = 1; k <= text.length; k++) {
+      try { setter.call(el, text.slice(0, k)); } catch (e) {}
+      el.dispatchEvent(new InputEvent('input', { bubbles: true, data: text[k - 1] }));
+      await sleep(25);
+    }
+    const ok = await pickFromListbox(vals);
+    if (!ok) {
+      el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+      el.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+    }
+    return ok;
+  }
+
   // ---------- repeatable sections: work experience + education ----------
   // Fills one field of any widget type (text, select, native or custom dropdown, checkbox,
   // combobox/typeahead). Returns true if it put a value in.
@@ -213,8 +240,8 @@
     }
     if (el.value && !overwrite) return false;
     const combo = el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list';
+    if (combo) { const ok = await fillCombobox(el, vals); if (ok) mark(el, true); return ok; }
     setValue(el, vals[0]);
-    if (combo) { const ok = await pickFromListbox(vals); if (!ok) el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); }
     mark(el, true); return true;
   }
   // Smallest ancestor of a block's anchor field (company/school) that also holds a sibling
@@ -400,11 +427,13 @@
 
       const combo = el.getAttribute('role') === 'combobox' || el.getAttribute('aria-autocomplete') === 'list';
       const vals = alts(r.value);
-      setValue(el, vals[0]);
       if (combo) {
-        const ok = await pickFromListbox(vals);
-        if (!ok) el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        const ok = await fillCombobox(el, vals);
+        if (ok) { report.filled++; mark(el, true); }
+        else { report.needs.push(label.slice(0, 80)); mark(el, false); }
+        continue;
       }
+      setValue(el, vals[0]);
       report.filled++; mark(el, true);
     }
 
