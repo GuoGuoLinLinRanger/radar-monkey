@@ -40,6 +40,14 @@ countries = ["us", "ca"]
 kinds = ["intern", "newgrad"]
 categories = ["swe"]
 
+[sources.zero2sudo]
+# Community mirror of @zero2sudo's Instagram/newsletter job drops, kept as one jobs.json on
+# GitHub and refreshed daily. His drops are mostly early-career intern/new-grad roles with real
+# apply links. Instagram stories themselves expire in 24h and have no API, so this mirror is the
+# only clean feed. Unofficial, so it depends on that repo staying maintained. On by default.
+enabled = true
+url = "https://raw.githubusercontent.com/officialjackliu/zero2sudo-jobs/main/jobs.json"
+
 [sources.interninsider]
 # interninsider.me: a second list that the GitHub mirrors don't cover. Static site,
 # one request per posting (cached after the first run), SWE decided by title.

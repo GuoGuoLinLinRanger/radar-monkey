@@ -155,6 +155,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
       <button data-page="intern">Intern<span class="n" id="n-intern"></span></button>
       <button data-page="newgrad">New grad<span class="n" id="n-newgrad"></span></button>
       <button data-page="bigtech">Big tech<span class="n" id="n-bigtech"></span></button>
+      <button data-page="zero2sudo">zero2sudo<span class="n" id="n-zero2sudo"></span></button>
       <button data-page="tracker">My applications<span class="n" id="n-tracker"></span></button>
     </nav>
     <div class="meta"><span id="meta"></span><span class="sync" id="sync" title="Chrome extension not connected">Extension</span><button class="iconbtn" id="open-settings">Settings</button></div>
@@ -299,7 +300,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
   ];
   const ACTIVE = new Set(['applied', 'oa', 'interview']);
   const LABEL = Object.fromEntries(STATUSES);
-  const SRC_LABEL = { simplify: 'Simplify', jobright: 'Jobright', watch: 'Company site', waterlooworks: 'WaterlooWorks' };
+  const SRC_LABEL = { simplify: 'Simplify', jobright: 'Jobright', watch: 'Company site', waterlooworks: 'WaterlooWorks', zero2sudo: 'zero2sudo' };
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ymd = (d) => d.toLocaleDateString('en-CA');  // YYYY-MM-DD in your time zone
@@ -487,7 +488,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     if (blob.includes('2026') && !blob.includes('2027')) s -= 3;
     if (j.category === 'Software' || j.category === 'AI/ML/Data') s += 2;
     if (FAANG.some(f => j.company.toLowerCase().includes(f))) s += 2;
-    if (j.sources.includes('watch')) s += 2;
+    if (j.sources.includes('watch') || j.sources.includes('zero2sudo')) s += 2;
     const age = (Date.now() - j.ts) / DAY;
     s += age <= 14 ? 2 : age <= 30 ? 1 : 0;
     if (j.hasPay) s += 1;
@@ -506,6 +507,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     const seenTs = Date.parse(seenAt) || 0;
     const out = jobs.filter(j => {
       if (state.page === 'bigtech') { if (!bigtechOk(j)) return false; }
+      else if (state.page === 'zero2sudo') { if (!j.sources.includes('zero2sudo')) return false; }
       else if (j.kind !== state.page) return false;
       if (!f.showclosed && !j.active) return false;
       if (!f.showhidden && hidden.has(j.id)) return false;
@@ -554,7 +556,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     $(el).innerHTML = pairs.map(([v, c]) => `<button data-k="${key}" data-v="${esc(v)}" aria-pressed="${on.has(v)}">${esc(labelFn ? labelFn(v) : v)}<span class="c">${c}</span></button>`).join('') || '<span class="hint">None in this list</span>';
   }
   function renderFilters() {
-    const pool = jobs.filter(j => (state.page === 'bigtech' ? bigtechOk(j) : j.kind === state.page) && j.active);
+    const pool = jobs.filter(j => (state.page === 'bigtech' ? bigtechOk(j) : state.page === 'zero2sudo' ? j.sources.includes('zero2sudo') : j.kind === state.page) && j.active);
     renderChips('f-terms', 'terms', counts(pool, 'terms').slice(0, 10));
     renderChips('f-cats', 'cats', counts(pool, 'category'));
     renderChips('f-ats', 'ats', counts(pool, 'ats').slice(0, 12));
@@ -579,6 +581,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     $('n-intern').textContent = live.filter(j => j.kind === 'intern').length.toLocaleString();
     $('n-newgrad').textContent = live.filter(j => j.kind === 'newgrad').length.toLocaleString();
     $('n-bigtech').textContent = live.filter(bigtechOk).length.toLocaleString();
+    $('n-zero2sudo').textContent = live.filter(j => j.sources.includes('zero2sudo')).length.toLocaleString();
     $('n-tracker').textContent = Object.values(tracker).filter(e => ACTIVE.has(e.status)).length || '';
     if (page === 'tracker') return renderTracker();
 
@@ -598,13 +601,13 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
     const showFit = !!(settings.resume || '').trim() || !!settings.keywords.trim();
     // Two sections: jobs pulled straight from company career sites (the "watch" source)
     // come first, then everything from the aggregator lists. Each keeps the chosen sort.
-    const isDirect = (j) => j.sources.includes('watch');
+    const isDirect = (j) => j.sources.includes('watch') || j.sources.includes('zero2sudo');
     const direct = rows.filter(isDirect), agg = rows.filter(j => !isDirect(j));
     const ordered = direct.concat(agg), firstAgg = direct.length;
     const sectionRow = (label, n, note) => `<tr class="section"><td colspan="8"><span class="sec-name">${label}</span> <span class="sec-n">${n}</span> <span class="sec-note">${note}</span></td></tr>`;
     const html = [];
     ordered.slice(0, state.shown).forEach((j, i) => {
-      if (direct.length && i === 0) html.push(sectionRow('Straight from company sites', direct.length, 'polled direct, apply on the company page'));
+      if (direct.length && i === 0) html.push(sectionRow('Straight from company sites', direct.length, 'apply on the company page; polled direct or fresh from zero2sudo'));
       if (agg.length && i === firstAgg) html.push(sectionRow('From job boards', agg.length, 'Simplify and WaterlooWorks, can lag a day or two'));
       const t = tracker[j.id];
       const open = state.open === j.id;
@@ -928,7 +931,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
   // ---------- go ----------
   applyTheme(); scoreAll();
   const p = location.hash.slice(1);
-  if (['intern', 'newgrad', 'tracker'].includes(p)) state.page = p;
+  if (['intern', 'newgrad', 'bigtech', 'zero2sudo', 'tracker'].includes(p)) state.page = p;
   const newest = jobs.reduce((m, j) => Math.max(m, j.ts), 0);
   $('meta').textContent = raw.generated ? `Data updated ${ago(Date.parse(raw.generated))}${newest ? ', newest posting ' + ago(newest) : ''}` : 'No data yet. Run: python -m radar all';
   render();
