@@ -11,7 +11,7 @@ from pathlib import Path
 from . import build as B
 from . import notify as NT
 from . import store
-from .sources import boards, interninsider, jobright, jobright_api, simplify, zero2sudo
+from .sources import boards, community, interninsider, jobright, jobright_api, simplify, zero2sudo
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -38,6 +38,8 @@ def update(cfg: dict) -> None:
         fresh += interninsider.fetch(src.get("interninsider", {}), age, now)
     if src.get("zero2sudo", {}).get("enabled", False):
         fresh += zero2sudo.fetch(src.get("zero2sudo", {}), age, now)
+    if src.get("community_lists", {}).get("enabled", False):
+        fresh += community.fetch(src.get("community_lists", {}), age, now)
     if cfg.get("watch", {}).get("boards"):
         fresh += boards.fetch(cfg["watch"], age, now)
     if not fresh:

@@ -48,6 +48,19 @@ categories = ["swe"]
 enabled = true
 url = "https://raw.githubusercontent.com/officialjackliu/zero2sudo-jobs/main/jobs.json"
 
+[sources.community_lists]
+# Extra Simplify-format listings.json feeds maintained by other students (same schema as
+# Simplify, so the deduper folds any overlap). vanshb03 curates its own intern + new-grad
+# lists that are largely NOT in Simplify, so they add real coverage. Add one: copy a line.
+# Found by surveying the GitHub intern-list ecosystem; most other repos (coderQuad, cvrve,
+# Ouckah) just mirror Simplify or vanshb03, and speedyapply / zapplyjobs / the Canadian lists
+# are README-only (no clean JSON feed), so they're intentionally left out.
+enabled = true
+feeds = [
+  { url = "https://raw.githubusercontent.com/vanshb03/Summer2027-Internships/dev/.github/scripts/listings.json", kind = "intern",  source = "vanshb03" },
+  { url = "https://raw.githubusercontent.com/vanshb03/New-Grad-2027/dev/.github/scripts/listings.json",          kind = "newgrad", source = "vanshb03" },
+]
+
 [sources.interninsider]
 # interninsider.me: a second list that the GitHub mirrors don't cover. Static site,
 # one request per posting (cached after the first run), SWE decided by title.

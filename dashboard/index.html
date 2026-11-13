@@ -300,7 +300,7 @@ dialog textarea, dialog input[type=text], dialog select { width: 100%; border: 1
   ];
   const ACTIVE = new Set(['applied', 'oa', 'interview']);
   const LABEL = Object.fromEntries(STATUSES);
-  const SRC_LABEL = { simplify: 'Simplify', jobright: 'Jobright', watch: 'Company site', waterlooworks: 'WaterlooWorks', zero2sudo: 'zero2sudo' };
+  const SRC_LABEL = { simplify: 'Simplify', jobright: 'Jobright', watch: 'Company site', waterlooworks: 'WaterlooWorks', zero2sudo: 'zero2sudo', vanshb03: 'vanshb03' };
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ymd = (d) => d.toLocaleDateString('en-CA');  // YYYY-MM-DD in your time zone
